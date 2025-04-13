@@ -9,6 +9,33 @@ const app = express();
 const PORT = 3000;
 const postsFile = path.join(__dirname, 'data', 'posts.json');
 
+const multer = require('multer');
+
+
+// Serve uploads
+app.use('/uploads', express.static('uploads'));
+
+// Ensure uploads folder exists
+const uploadPath = 'uploads/thumbnails';
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// Multer config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/thumbnails'); // Ensure this path is relative to server.js
+  },
+  filename: function (req, file, cb) {
+    const title = req.body.title || 'untitled';
+    const slug = generateSlug(title);
+    const ext = path.extname(file.originalname); // preserves original extension
+    cb(null, `${slug}${ext}`);
+  }
+});
+
+const upload = multer({ storage });
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -71,13 +98,14 @@ app.get('/posts/:id', (req, res) => {
   });
 
 // POST create new post
-app.post('/posts', (req, res) => {
+app.post('/posts', upload.single('thumbnail'), (req, res) => {
   const data = req.body;
 
   const id = generateId();
   const slug = generateSlug(data.title);
   const createdAt = new Date().toISOString();
-  const thumbnail = `/thumbnails/${slug}.png`;
+
+  const thumbnailFilename = req.file ? req.file.filename : null;
 
   const newPost = {
     id,
@@ -85,13 +113,13 @@ app.post('/posts', (req, res) => {
     slug,
     formatCategory: data.formatCategory,
     contentCategory: data.contentCategory,
-    tags: data.tags || [],
-    thumbnail,
+    tags: JSON.parse(data.tags || '[]'),
+    thumbnail: thumbnailFilename,
     createdAt,
     editDates: [],
     author: data.author || "unknown",
-    status: data.status || false,
-    content: data.content || []
+    status: data.status === 'true' || false,
+    content: []
   };
 
   const posts = readPosts();
@@ -100,6 +128,9 @@ app.post('/posts', (req, res) => {
 
   res.status(201).json(newPost);
 });
+
+
+
 
 // PATCH update post
 app.patch('/posts/:id', (req, res) => {
