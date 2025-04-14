@@ -1,22 +1,33 @@
 [
   {
-    "id": "k0kd9h1ysbyc",
-    "title": "Demon Slayer New Movie is Here!",
-    "slug": "demon-lsayer-new-movie",
+    "id": "co39qz64cdnl",
+    "title": "Bleach TYBW Final Sezonu Ywacht vs. Ichigo",
+    "slug": "bleach-tybw-final-sezonu-ywacht-vs-ichigo",
     "formatCategory": "anime",
     "contentCategory": "inceleme",
     "tags": [
       "shounen",
-      "newgen",
-      "movie",
-      "action"
+      "bleach",
+      "aksiyon"
     ],
-    "thumbnail": "demon-lsayer-new-movie.png",
-    "createdAt": "2025-04-13T14:28:59.033Z",
-    "editDates": [
-      "2025-04-13T15:09:32.950Z"
-    ],
-    "author": "evo",
+    "thumbnail": "bleach-tybw-final-sezonu-ywacht-vs-ichigo.jpg",
+    "createdAt": "2025-04-13T22:26:00.861Z",
+    "editDates": [],
+    "author": "veli",
+    "status": true,
+    "content": []
+  },
+  {
+    "id": "i02sq2uetlyx",
+    "title": "My Hero Academia: The Best Heroes Ranked",
+    "slug": "my-hero-academia-the-best-heroes-ranked",
+    "formatCategory": "anime",
+    "contentCategory": "liste",
+    "tags": [],
+    "thumbnail": "my-hero-academia-the-best-heroes-ranked.png",
+    "createdAt": "2025-04-13T22:37:07.970Z",
+    "editDates": [],
+    "author": "veli",
     "status": true,
     "content": []
   }
