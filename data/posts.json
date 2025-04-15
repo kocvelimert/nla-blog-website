@@ -1,16 +1,55 @@
 [
   {
-    "id": "w19e0mqysfhe",
-    "title": "My Hero Academia: The Best Heroes Ranked",
-    "slug": "my-hero-academia-the-best-heroes-ranked",
+    "id": "3rxs4lbwe4qm",
+    "title": "asdaaaaaaaaaa",
+    "slug": "asdaaaaaaaaaa",
     "formatCategory": "anime",
-    "contentCategory": "liste",
-    "tags": [],
-    "thumbnail": "my-hero-academia-the-best-heroes-ranked.png",
-    "createdAt": "2025-04-14T11:21:40.178Z",
+    "contentCategory": "haber",
+    "tags": [
+      "shounen"
+    ],
+    "thumbnail": "asdaaaaaaaaaa.png",
+    "createdAt": "2025-04-15T19:05:00.789Z",
     "editDates": [],
     "author": "veli",
     "status": true,
-    "content": []
+    "content": [
+      {
+        "type": "paragraph",
+        "data": {
+          "text": "Edit this paragraph..."
+        }
+      }
+    ]
+  },
+  {
+    "id": "wml7d2h10bsf",
+    "title": "qqqqqqqqqqqqqqqq",
+    "slug": "qqqqqqqqqqqqqqqq",
+    "formatCategory": "anime",
+    "contentCategory": "haber",
+    "tags": [
+      "asd",
+      "oooasd"
+    ],
+    "thumbnail": "qqqqqqqqqqqqqqqq.jpg",
+    "createdAt": "2025-04-15T19:24:22.889Z",
+    "editDates": [],
+    "author": "veli",
+    "status": true,
+    "content": [
+      {
+        "type": "paragraph",
+        "data": {
+          "text": "Edit this paragraph..."
+        }
+      },
+      {
+        "type": "image",
+        "data": {
+          "filename": "wml7d2h10bsf-1.png"
+        }
+      }
+    ]
   }
 ]

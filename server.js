@@ -15,26 +15,41 @@ const multer = require('multer');
 // Serve uploads
 app.use('/uploads', express.static('uploads'));
 
-// Ensure uploads folder exists
+const contentImagePath = 'uploads/content-images';
+if (!fs.existsSync(contentImagePath)) {
+  fs.mkdirSync(contentImagePath, { recursive: true });
+}
+
 const uploadPath = 'uploads/thumbnails';
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// Multer config
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/thumbnails'); // Ensure this path is relative to server.js
-  },
-  filename: function (req, file, cb) {
-    const title = req.body.title || 'untitled';
-    const slug = generateSlug(title);
-    const ext = path.extname(file.originalname); // preserves original extension
-    cb(null, `${slug}${ext}`);
-  }
-});
 
-const upload = multer({ storage });
+// ⬇️ Place the multer config BEFORE your route
+const uploadFiles = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const isThumbnail = file.fieldname === 'thumbnail';
+      const dir = isThumbnail ? 'uploads/thumbnails' : 'uploads/content-images';
+      cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+      const ext = path.extname(file.originalname);
+      if (file.fieldname === 'thumbnail') {
+        const slug = generateSlug(req.body.title || 'untitled');
+        cb(null, `${slug}${ext}`);
+      } else {
+        // content images will be renamed later
+        cb(null, file.originalname);
+      }
+    }
+  })
+}).fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'images', maxCount: 20 },
+]);
+
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -97,40 +112,84 @@ app.get('/posts/:id', (req, res) => {
     res.json(post);
   });
 
-// POST create new post
-app.post('/posts', upload.single('thumbnail'), (req, res) => {
-  const data = req.body;
+  //POST a post
+  app.post('/posts', (req, res) => {
+    uploadFiles(req, res, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'File upload error', details: err.message });
+      }
+  
+      try {
+        const data = req.body;
+        const id = generateId();
+        const slug = generateSlug(data.title);
+        const createdAt = new Date().toISOString();
+  
+        const thumbnailFile = req.files?.thumbnail?.[0];
+        const contentImageFiles = req.files?.images || [];
+  
+        let thumbnailFilename = null;
+        if (thumbnailFile) {
+          thumbnailFilename = thumbnailFile.filename;
+        }
+  
+        let contentBlocks = [];
+if (req.body.content && typeof req.body.content === 'string') {
+  try {
+    contentBlocks = JSON.parse(req.body.content);
+  } catch (e) {
+    console.error('Invalid content JSON:', e);
+  }
+} else {
+  console.log('Content is missing or malformed');
+}
 
-  const id = generateId();
-  const slug = generateSlug(data.title);
-  const createdAt = new Date().toISOString();
-
-  const thumbnailFilename = req.file ? req.file.filename : null;
-
-  const newPost = {
-    id,
-    title: data.title,
-    slug,
-    formatCategory: data.formatCategory,
-    contentCategory: data.contentCategory,
-    tags: JSON.parse(data.tags || '[]'),
-    thumbnail: thumbnailFilename,
-    createdAt,
-    editDates: [],
-    author: data.author || "unknown",
-    status: data.status === 'true' || false,
-    content: []
-  };
-
-  const posts = readPosts();
-  posts.push(newPost);
-  writePosts(posts);
-
-  res.status(201).json(newPost);
-});
-
-
-
+  
+        // Process content images
+        let imageIndex = 1;
+        for (let block of contentBlocks) {
+          if (block.type === 'image') {
+            const file = contentImageFiles.find(f => f.originalname === block.data.filename);
+            if (file) {
+              const ext = path.extname(file.originalname);
+              const newName = `${id}-${imageIndex}${ext}`;
+              const oldPath = file.path;
+              const newPath = path.join(path.dirname(oldPath), newName);
+              fs.renameSync(oldPath, newPath);
+              block.data.filename = newName;
+              imageIndex++;
+            }
+          }
+        }
+  
+        const newPost = {
+          id,
+          title: data.title,
+          slug,
+          formatCategory: data.formatCategory,
+          contentCategory: data.contentCategory,
+          tags: JSON.parse(data.tags || '[]'),
+          thumbnail: thumbnailFilename,
+          createdAt,
+          editDates: [],
+          author: data.author || 'unknown',
+          status: data.status === 'true' || false,
+          content: contentBlocks
+        };
+  
+        const posts = readPosts();
+        posts.push(newPost);
+        writePosts(posts);
+  
+        res.status(201).json(newPost);
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Unexpected error while processing post' });
+      }
+    });
+  });
+  
 
 // PATCH update post
 app.patch('/posts/:id', (req, res) => {
