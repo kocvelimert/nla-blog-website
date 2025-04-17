@@ -149,27 +149,28 @@ app.post("/posts", (req, res) => {
 
       // Process content images
       // Process content images and rename them like {id}-1, {id}-2, ...
-let imageIndex = 1;
-const originalToNewMap = {};
+      let imageIndex = 1;
+      const originalToNewMap = {};
 
-for (let block of contentBlocks) {
-  if (block.type === "image" && block.data && block.data.filename) {
-    const originalName = block.data.filename;
-    const file = contentImageFiles.find((f) => f.originalname === originalName);
-    if (file) {
-      const ext = path.extname(originalName);
-      const newFilename = `${id}-${imageIndex}${ext}`;
-      const newPath = path.join(path.dirname(file.path), newFilename);
+      for (let block of contentBlocks) {
+        if (block.type === "image" && block.data && block.data.filename) {
+          const originalName = block.data.filename;
+          const file = contentImageFiles.find(
+            (f) => f.originalname === originalName
+          );
+          if (file) {
+            const ext = path.extname(originalName);
+            const newFilename = `${id}-${imageIndex}${ext}`;
+            const newPath = path.join(path.dirname(file.path), newFilename);
 
-      fs.renameSync(file.path, newPath);
-      originalToNewMap[originalName] = newFilename;
+            fs.renameSync(file.path, newPath);
+            originalToNewMap[originalName] = newFilename;
 
-      block.data.filename = newFilename;
-      imageIndex++;
-    }
-  }
-}
-
+            block.data.filename = newFilename;
+            imageIndex++;
+          }
+        }
+      }
 
       const newPost = {
         id,
@@ -200,23 +201,114 @@ for (let block of contentBlocks) {
 
 // PATCH update post
 app.patch("/posts/:id", (req, res) => {
-  const { id } = req.params;
-  const updates = req.body;
+  uploadFiles(req, res, (err) => {
+    if (err) {
+      console.error(err);
+      return res
+        .status(500)
+        .json({ error: "File upload error", details: err.message });
+    }
 
-  const posts = readPosts();
-  const index = posts.findIndex((p) => p.id === id);
+    try {
+      const { id } = req.params;
+      const posts = readPosts();
+      const postIndex = posts.findIndex((p) => p.id === id);
 
-  if (index === -1) return res.status(404).json({ error: "Post not found" });
+      if (postIndex === -1) {
+        return res.status(404).json({ error: "Post not found" });
+      }
 
-  posts[index] = {
-    ...posts[index],
-    ...updates,
-    editDates: [...posts[index].editDates, new Date().toISOString()],
-  };
+      const existingPost = posts[postIndex];
+      const data = req.body;
 
-  writePosts(posts);
-  res.json(posts[index]);
+      const thumbnailFile = req.files?.thumbnail?.[0];
+      const contentImageFiles = req.files?.images || [];
+
+      let updatedThumbnail = existingPost.thumbnail;
+
+      // Replace thumbnail if new one is uploaded
+      if (thumbnailFile) {
+        const thumbnailPath = path.join(
+          __dirname,
+          "uploads/thumbnails",
+          existingPost.thumbnail
+        );
+
+        // Delete old thumbnail file
+        if (fs.existsSync(thumbnailPath)) {
+          fs.unlinkSync(thumbnailPath);
+        }
+
+        updatedThumbnail = thumbnailFile.filename;
+      }
+
+      let updatedContent = existingPost.content;
+      if (data.content && typeof data.content === "string") {
+        try {
+          updatedContent = JSON.parse(data.content);
+        } catch (e) {
+          console.error("Invalid content JSON:", e);
+        }
+      }
+
+      // Process and rename new content images
+      let imageIndex = 1;
+      const originalToNewMap = {};
+
+      for (let block of updatedContent) {
+        if (block.type === "image" && block.data && block.data.filename) {
+          const originalName = block.data.filename;
+          const file = contentImageFiles.find(
+            (f) => f.originalname === originalName
+          );
+
+          if (file) {
+            const ext = path.extname(originalName);
+            const newFilename = `${id}-${imageIndex}${ext}`;
+            const newPath = path.join(path.dirname(file.path), newFilename);
+
+            // Delete old image if different
+            const oldImagePath = path.join(
+              __dirname,
+              "uploads/content-image",
+              originalName
+            );
+            if (fs.existsSync(oldImagePath)) {
+              fs.unlinkSync(oldImagePath);
+            }
+
+            fs.renameSync(file.path, newPath);
+            block.data.filename = newFilename;
+            imageIndex++;
+          }
+        }
+      }
+
+      const updatedPost = {
+        ...existingPost,
+        title: data.title ?? existingPost.title,
+        slug: generateSlug(data.title ?? existingPost.title),
+        formatCategory: data.formatCategory ?? existingPost.formatCategory,
+        contentCategory: data.contentCategory ?? existingPost.contentCategory,
+        tags: JSON.parse(data.tags || "[]"),
+        thumbnail: updatedThumbnail,
+        editDates: [...existingPost.editDates, new Date().toISOString()],
+        author: data.author ?? existingPost.author,
+        status: data.status === "true" || false,
+        content: updatedContent,
+      };
+
+      posts[postIndex] = updatedPost;
+      writePosts(posts);
+
+      res.json(updatedPost);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Unexpected error while updating post" });
+    }
+  });
 });
+
 
 // DELETE post
 app.delete("/posts/:id", (req, res) => {
