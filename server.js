@@ -4,8 +4,10 @@ const cors = require("cors");
 const path = require("path");
 const postRoutes = require("./routes/postRoutes");
 const connectDB = require("./config/db");
+const cloudinary = require('./config/cloudinary');
 
 require("dotenv").config;
+require("./config/cloudinary");
 
 const app = express();
 const PORT = 3000;
@@ -14,7 +16,6 @@ connectDB();
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Register routes
 app.use("/posts", postRoutes);
