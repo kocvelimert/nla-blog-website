@@ -3,7 +3,7 @@ const path = require("path");
 const multer = require("multer");
 const Post = require("../models/Post");
 const { generateId, generateSlug } = require("../utils/helpers");
-const cloudinary = require('cloudinary');
+const cloudinary = require("cloudinary");
 
 // GET: Hepsi
 exports.getAllPosts = async (req, res) => {
@@ -63,7 +63,9 @@ exports.getPostsByCategory = async (req, res) => {
   });
 
   if (posts.length === 0)
-    return res.status(404).json({ message: "No posts found for this category" });
+    return res
+      .status(404)
+      .json({ message: "No posts found for this category" });
 
   res.json(posts);
 };
@@ -123,7 +125,6 @@ exports.getPostById = async (req, res) => {
   }
 };
 
-
 // Multer memory storage (zaten yukarıda tanımlı olduğunu varsayıyorum)
 const uploadFiles = multer({ storage: multer.memoryStorage() }).fields([
   { name: "thumbnail", maxCount: 1 },
@@ -135,6 +136,16 @@ exports.createPost = (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
 
     try {
+      console.log("🛠️ createPost endpoint çalisti");
+      console.log("req.files:", req.files);
+      console.log("req.body:", req.body);
+
+      if (req.files?.thumbnail) {
+        console.log("✅ Thumbnail dosyasi geldi.");
+      }
+      if (req.files?.images) {
+        console.log("✅ Ekstra görseller geldi.");
+      }
       const data = req.body;
       const slug = generateSlug(data.title || "untitled");
       const createdAt = new Date();
@@ -145,24 +156,46 @@ exports.createPost = (req, res) => {
       // Thumbnail Cloudinary'e yükleniyor
       let thumbnailUrl = null;
       if (thumbnailFile) {
-        const result = await uploadToCloudinary(thumbnailFile.buffer, "thumbnails", slug);
+        const result = await uploadToCloudinary(
+          thumbnailFile.buffer,
+          "thumbnails",
+          slug
+        );
         thumbnailUrl = result.secure_url;
       }
 
       // Content parçalarını çözümle
       let contentBlocks = [];
-      if (data.content && typeof data.content === "string") {
+
+      if (typeof data.content === "string") {
         contentBlocks = JSON.parse(data.content);
+      } else if (typeof data.content === "object") {
+        contentBlocks = data.content;
+      } else {
+        throw new Error("Geçersiz content formatı");
+      }
+
+      if (data.content && typeof data.content === "string") {
+        // contentBlocks = JSON.parse(data.content);
+        const contentBlocks = Array.isArray(data.content)
+          ? data.content
+          : JSON.parse(data.content);
 
         let imageIndex = 1;
         for (let block of contentBlocks) {
           if (block.type === "image" && block.data?.filename) {
             const originalName = block.data.filename;
-            const file = contentImageFiles.find(f => f.originalname === originalName);
+            const file = contentImageFiles.find(
+              (f) => f.originalname === originalName
+            );
 
             if (file) {
               const publicId = `${slug}-${imageIndex}`;
-              const result = await uploadToCloudinary(file.buffer, "content-images", publicId);
+              const result = await uploadToCloudinary(
+                file.buffer,
+                "content-images",
+                publicId
+              );
               block.data.filename = result.secure_url;
               imageIndex++;
             }
@@ -210,7 +243,11 @@ exports.updatePost = (req, res) => {
       let thumbnailUrl = existing.thumbnail;
       if (thumbnailFile) {
         const slug = generateSlug(data.title ?? existing.title);
-        const result = await uploadToCloudinary(thumbnailFile.buffer, "thumbnails", slug);
+        const result = await uploadToCloudinary(
+          thumbnailFile.buffer,
+          "thumbnails",
+          slug
+        );
         thumbnailUrl = result.secure_url;
       }
 
@@ -224,11 +261,17 @@ exports.updatePost = (req, res) => {
         for (let block of updatedContent) {
           if (block.type === "image" && block.data?.filename) {
             const originalName = block.data.filename;
-            const file = contentImageFiles.find(f => f.originalname === originalName);
+            const file = contentImageFiles.find(
+              (f) => f.originalname === originalName
+            );
 
             if (file) {
               const publicId = `${slug}-${imageIndex}`;
-              const result = await uploadToCloudinary(file.buffer, "content-images", publicId);
+              const result = await uploadToCloudinary(
+                file.buffer,
+                "content-images",
+                publicId
+              );
               block.data.filename = result.secure_url;
               imageIndex++;
             }
@@ -272,16 +315,23 @@ exports.deletePost = async (req, res) => {
 
     // Cloudinary'deki dosyaları sil
     if (post.thumbnail) {
-      const thumbnailPublicId = post.thumbnail.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(thumbnailPublicId, { resource_type: 'image' });
+      const thumbnailPublicId = post.thumbnail.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(thumbnailPublicId, {
+        resource_type: "image",
+      });
     }
 
     // İçerik resimlerini sil
     if (post.content && Array.isArray(post.content)) {
       for (let block of post.content) {
-        if (block.type === 'image' && block.data?.filename) {
-          const imagePublicId = block.data.filename.split('/').pop().split('.')[0];
-          await cloudinary.uploader.destroy(imagePublicId, { resource_type: 'image' });
+        if (block.type === "image" && block.data?.filename) {
+          const imagePublicId = block.data.filename
+            .split("/")
+            .pop()
+            .split(".")[0];
+          await cloudinary.uploader.destroy(imagePublicId, {
+            resource_type: "image",
+          });
         }
       }
     }
@@ -289,7 +339,10 @@ exports.deletePost = async (req, res) => {
     // Veritabanından sil
     await Post.findByIdAndDelete(id);
 
-    res.json({ message: "Post deleted successfully, and associated media removed from Cloudinary." });
+    res.json({
+      message:
+        "Post deleted successfully, and associated media removed from Cloudinary.",
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error while deleting post" });
