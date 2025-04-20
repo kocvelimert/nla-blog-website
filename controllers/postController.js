@@ -150,18 +150,40 @@ exports.createPost = (req, res) => {
       const slug = generateSlug(data.title || "untitled");
       const createdAt = new Date();
 
+      // Parse tags safely
+      let tags = [];
+      try {
+        if (data.tags) {
+          // Check if it's already an array
+          if (Array.isArray(data.tags)) {
+            tags = data.tags;
+          } else {
+            tags = JSON.parse(data.tags);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing tags:", error);
+        // Continue with empty tags array instead of failing
+      }
+
       const thumbnailFile = req.files?.thumbnail?.[0];
       const contentImageFiles = req.files?.images || [];
 
-      // Thumbnail Cloudinary'e yükleniyor
+      // Handle thumbnail
       let thumbnailUrl = null;
-      if (thumbnailFile) {
-        const result = await uploadToCloudinary(
-          thumbnailFile.buffer,
-          "thumbnails",
-          slug
-        );
-        thumbnailUrl = result.secure_url;
+      if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
+        console.log("✅ Thumbnail dosyasi geldi.");
+        const thumbnailFile = req.files.thumbnail[0];
+        try {
+          const result = await uploadToCloudinary(
+            thumbnailFile.buffer,
+            "thumbnails",
+            `${slug}-thumbnail`
+          );
+          thumbnailUrl = result.public_id; // Store the public_id, not the URL
+        } catch (error) {
+          console.error("Error uploading thumbnail:", error);
+        }
       }
 
       // Content parçalarını çözümle
@@ -203,17 +225,28 @@ exports.createPost = (req, res) => {
         }
       }
 
+      // Fix the status handling - properly convert to boolean
+      let status = false;
+      if (
+        data.status === true ||
+        data.status === "true" ||
+        data.status === 1 ||
+        data.status === "1"
+      ) {
+        status = true;
+      }
+
       const post = new Post({
         title: data.title,
         slug,
         formatCategory: data.formatCategory,
         contentCategory: data.contentCategory,
-        tags: JSON.parse(data.tags || "[]"),
+        tags: tags,
         thumbnail: thumbnailUrl,
         createdAt,
         editDates: [],
         author: data.author || "unknown",
-        status: data.status === "true" || false,
+        status: data.status === true || false,
         content: contentBlocks,
       });
 
