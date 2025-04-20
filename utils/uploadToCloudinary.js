@@ -1,18 +1,29 @@
-const cloudinary = require('../config/cloudinary');
+const cloudinary = require('cloudinary').v2;
 
 const uploadToCloudinary = async (fileBuffer, folder, filename) => {
   return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
+    const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: folder,
         public_id: filename,
-        resource_type: 'image',
+        resource_type: 'auto',
       },
       (error, result) => {
-        if (error) return reject(error);
+        if (error) {
+          console.error("❌ Cloudinary upload error:", error);
+          return reject(error);
+        }
+        console.log("✅ Cloudinary upload success:", result.secure_url);
         resolve(result);
       }
-    ).end(fileBuffer);
+    );
+
+    if (!fileBuffer) {
+      console.error("⚠️ No buffer provided to upload stream");
+      return reject(new Error("Missing file buffer"));
+    }
+
+    uploadStream.end(fileBuffer);
   });
 };
 

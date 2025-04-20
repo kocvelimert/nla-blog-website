@@ -1,10 +1,5 @@
 const mongoose = require("mongoose");
 
-const contentBlockSchema = new mongoose.Schema({
-  type: String,
-  data: mongoose.Schema.Types.Mixed,
-});
-
 const postSchema = new mongoose.Schema({
   title: String,
   slug: String,
@@ -16,7 +11,15 @@ const postSchema = new mongoose.Schema({
   editDates: [Date],
   author: { type: String, default: "unknown" },
   status: { type: Boolean, default: false },
-  content: [contentBlockSchema],
+  content: [
+    {
+      type: { type: String, required: true },
+      text: String,
+      url: String,
+      caption: String,
+      author: String
+    }
+  ],
 });
 
 module.exports = mongoose.model("Post", postSchema);

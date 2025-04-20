@@ -4,6 +4,8 @@ const multer = require("multer");
 const Post = require("../models/Post");
 const { generateId, generateSlug } = require("../utils/helpers");
 const cloudinary = require("cloudinary");
+const uploadToCloudinary = require('../utils/uploadToCloudinary.js');
+
 
 // GET: Hepsi
 exports.getAllPosts = async (req, res) => {
@@ -125,218 +127,221 @@ exports.getPostById = async (req, res) => {
   }
 };
 
-// Multer memory storage (zaten yukarıda tanımlı olduğunu varsayıyorum)
-const uploadFiles = multer({ storage: multer.memoryStorage() }).fields([
-  { name: "thumbnail", maxCount: 1 },
-  { name: "images", maxCount: 20 },
-]);
 
-exports.createPost = (req, res) => {
-  uploadFiles(req, res, async (err) => {
-    if (err) return res.status(500).json({ error: err.message });
+exports.createPost = async (req, res) => {
+  try {
+    console.log("🛠️ createPost endpoint called");
+    console.log("req.files:", req.files);
+    console.log("req.body:", req.body);
 
+    const data = req.body;
+    const slug = generateSlug(data.title || "untitled");
+    const createdAt = new Date();
+
+    // Parse tags safely
+    let tags = [];
     try {
-      console.log("🛠️ createPost endpoint çalisti");
-      console.log("req.files:", req.files);
-      console.log("req.body:", req.body);
-
-      if (req.files?.thumbnail) {
-        console.log("✅ Thumbnail dosyasi geldi.");
+      if (data.tags) {
+        tags = Array.isArray(data.tags) ? data.tags : JSON.parse(data.tags);
       }
-      if (req.files?.images) {
-        console.log("✅ Ekstra görseller geldi.");
-      }
-      const data = req.body;
-      const slug = generateSlug(data.title || "untitled");
-      const createdAt = new Date();
-
-      // Parse tags safely
-      let tags = [];
-      try {
-        if (data.tags) {
-          // Check if it's already an array
-          if (Array.isArray(data.tags)) {
-            tags = data.tags;
-          } else {
-            tags = JSON.parse(data.tags);
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing tags:", error);
-        // Continue with empty tags array instead of failing
-      }
-
-      const thumbnailFile = req.files?.thumbnail?.[0];
-      const contentImageFiles = req.files?.images || [];
-
-      // Handle thumbnail
-      let thumbnailUrl = null;
-      if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
-        console.log("✅ Thumbnail dosyasi geldi.");
-        const thumbnailFile = req.files.thumbnail[0];
-        try {
-          const result = await uploadToCloudinary(
-            thumbnailFile.buffer,
-            "thumbnails",
-            `${slug}-thumbnail`
-          );
-          thumbnailUrl = result.public_id; // Store the public_id, not the URL
-        } catch (error) {
-          console.error("Error uploading thumbnail:", error);
-        }
-      }
-
-      // Content parçalarını çözümle
-      let contentBlocks = [];
-
-      if (typeof data.content === "string") {
-        contentBlocks = JSON.parse(data.content);
-      } else if (typeof data.content === "object") {
-        contentBlocks = data.content;
-      } else {
-        throw new Error("Geçersiz content formatı");
-      }
-
-      if (data.content && typeof data.content === "string") {
-        // contentBlocks = JSON.parse(data.content);
-        const contentBlocks = Array.isArray(data.content)
-          ? data.content
-          : JSON.parse(data.content);
-
-        let imageIndex = 1;
-        for (let block of contentBlocks) {
-          if (block.type === "image" && block.data?.filename) {
-            const originalName = block.data.filename;
-            const file = contentImageFiles.find(
-              (f) => f.originalname === originalName
-            );
-
-            if (file) {
-              const publicId = `${slug}-${imageIndex}`;
-              const result = await uploadToCloudinary(
-                file.buffer,
-                "content-images",
-                publicId
-              );
-              block.data.filename = result.secure_url;
-              imageIndex++;
-            }
-          }
-        }
-      }
-
-      // Fix the status handling - properly convert to boolean
-      let status = false;
-      if (
-        data.status === true ||
-        data.status === "true" ||
-        data.status === 1 ||
-        data.status === "1"
-      ) {
-        status = true;
-      }
-
-      const post = new Post({
-        title: data.title,
-        slug,
-        formatCategory: data.formatCategory,
-        contentCategory: data.contentCategory,
-        tags: tags,
-        thumbnail: thumbnailUrl,
-        createdAt,
-        editDates: [],
-        author: data.author || "unknown",
-        status: data.status === true || false,
-        content: contentBlocks,
-      });
-
-      const saved = await post.save();
-      res.status(201).json(saved);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Error while saving post" });
+      console.error("Error parsing tags:", error);
     }
-  });
-};
 
-exports.updatePost = (req, res) => {
-  uploadFiles(req, res, async (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-
-    try {
-      const { id } = req.params;
-      const existing = await Post.findById(id);
-      if (!existing) return res.status(404).json({ error: "Post not found" });
-
-      const data = req.body;
-      const thumbnailFile = req.files?.thumbnail?.[0];
-      const contentImageFiles = req.files?.images || [];
-
-      // Thumbnail güncellemesi gerekiyorsa
-      let thumbnailUrl = existing.thumbnail;
-      if (thumbnailFile) {
-        const slug = generateSlug(data.title ?? existing.title);
+    // Handle thumbnail
+    let thumbnailPublicId = null;
+    if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
+      console.log("✅ Thumbnail file received");
+      const thumbnailFile = req.files.thumbnail[0];
+      try {
         const result = await uploadToCloudinary(
           thumbnailFile.buffer,
           "thumbnails",
-          slug
+          `${slug}-thumbnail`
         );
-        thumbnailUrl = result.secure_url;
+        thumbnailPublicId = result.public_id;
+      } catch (error) {
+        console.error("Error uploading thumbnail:", error);
+        return res.status(500).json({ error: "Error uploading thumbnail" });
       }
+    }
 
-      // Content güncellemesi
-      let updatedContent = existing.content;
-      if (data.content && typeof data.content === "string") {
-        updatedContent = JSON.parse(data.content);
-        const slug = generateSlug(data.title ?? existing.title);
+    // Parse content blocks
+    let contentBlocks = [];
+    try {
+      if (data.content) {
+        contentBlocks = Array.isArray(data.content) 
+          ? data.content 
+          : JSON.parse(data.content);
+      }
+    } catch (error) {
+      console.error("Error parsing content:", error);
+      return res.status(400).json({ error: "Invalid content format" });
+    }
 
-        let imageIndex = 1;
-        for (let block of updatedContent) {
-          if (block.type === "image" && block.data?.filename) {
-            const originalName = block.data.filename;
-            const file = contentImageFiles.find(
-              (f) => f.originalname === originalName
-            );
+    // Process content images
+    const contentImageFiles = req.files?.images || [];
+    let imageIndex = 1;
+    
+    for (let i = 0; i < contentBlocks.length; i++) {
+      const block = contentBlocks[i];
+      if (block.type === "image" && block.url) {
+        // If it's a new image upload (not an existing URL)
+        if (!block.url.startsWith("http")) {
+          const originalName = block.url;
+          const file = contentImageFiles.find(
+            (f) => f.originalname === originalName
+          );
 
-            if (file) {
-              const publicId = `${slug}-${imageIndex}`;
+          if (file) {
+            const publicId = `content-images/${slug}-${imageIndex}`;
+            try {
               const result = await uploadToCloudinary(
                 file.buffer,
                 "content-images",
-                publicId
+                `${slug}-${imageIndex}`
               );
-              block.data.filename = result.secure_url;
+              contentBlocks[i].url = result.public_id; // Store public_id
               imageIndex++;
+            } catch (error) {
+              console.error("Error uploading content image:", error);
             }
           }
         }
       }
-
-      const updated = await Post.findByIdAndUpdate(
-        id,
-        {
-          title: data.title ?? existing.title,
-          slug: generateSlug(data.title ?? existing.title),
-          formatCategory: data.formatCategory ?? existing.formatCategory,
-          contentCategory: data.contentCategory ?? existing.contentCategory,
-          tags: JSON.parse(data.tags || "[]"),
-          thumbnail: thumbnailUrl,
-          editDates: [...existing.editDates, new Date()],
-          author: data.author ?? existing.author,
-          status: data.status === "true" || false,
-          content: updatedContent,
-        },
-        { new: true }
-      );
-
-      res.json(updated);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Error while updating post" });
     }
-  });
+
+    // Create and save the post
+    const post = new Post({
+      title: data.title,
+      slug,
+      formatCategory: data.formatCategory,
+      contentCategory: data.contentCategory,
+      tags: tags,
+      thumbnail: thumbnailPublicId,
+      createdAt,
+      editDates: [],
+      author: data.author || "unknown",
+      status: Boolean(data.status === "true" || data.status === true),
+      content: contentBlocks,
+    });
+
+    const saved = await post.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    console.error("Create post error:", error);
+    res.status(500).json({ error: "Error while saving post" });
+  }
 };
 
+exports.updatePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await Post.findById(id);
+    if (!existing) return res.status(404).json({ error: "Post not found" });
+
+    const data = req.body;
+    const slug = generateSlug(data.title || existing.title);
+    
+    // Handle thumbnail update
+    let thumbnailPublicId = existing.thumbnail;
+    if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
+      const thumbnailFile = req.files.thumbnail[0];
+      try {
+        // Delete old thumbnail if it exists
+        if (existing.thumbnail) {
+          await cloudinary.uploader.destroy(existing.thumbnail);
+        }
+        
+        const result = await uploadToCloudinary(
+          thumbnailFile.buffer,
+          "thumbnails",
+          `${slug}-thumbnail`
+        );
+        thumbnailPublicId = result.public_id;
+      } catch (error) {
+        console.error("Error updating thumbnail:", error);
+      }
+    }
+
+    // Parse content blocks
+    let contentBlocks = existing.content;
+    try {
+      if (data.content) {
+        contentBlocks = Array.isArray(data.content) 
+          ? data.content 
+          : JSON.parse(data.content);
+      }
+    } catch (error) {
+      console.error("Error parsing content:", error);
+      return res.status(400).json({ error: "Invalid content format" });
+    }
+
+    // Process content images
+    const contentImageFiles = req.files?.images || [];
+    let imageIndex = 1;
+    
+    for (let i = 0; i < contentBlocks.length; i++) {
+      const block = contentBlocks[i];
+      if (block.type === "image" && block.url) {
+        // If it's a new image upload (not an existing URL or public_id)
+        if (!block.url.startsWith("http") && !block.url.includes("/")) {
+          const originalName = block.url;
+          const file = contentImageFiles.find(
+            (f) => f.originalname === originalName
+          );
+
+          if (file) {
+            const publicId = `content-images/${slug}-${imageIndex}`;
+            try {
+              const result = await uploadToCloudinary(
+                file.buffer,
+                "content-images",
+                `${slug}-${imageIndex}`
+              );
+              contentBlocks[i].url = result.public_id;
+              imageIndex++;
+            } catch (error) {
+              console.error("Error uploading content image:", error);
+            }
+          }
+        }
+      }
+    }
+
+    // Parse tags
+    let tags = existing.tags;
+    try {
+      if (data.tags) {
+        tags = Array.isArray(data.tags) ? data.tags : JSON.parse(data.tags);
+      }
+    } catch (error) {
+      console.error("Error parsing tags:", error);
+    }
+
+    const updated = await Post.findByIdAndUpdate(
+      id,
+      {
+        title: data.title || existing.title,
+        slug: slug,
+        formatCategory: data.formatCategory || existing.formatCategory,
+        contentCategory: data.contentCategory || existing.contentCategory,
+        tags: tags,
+        thumbnail: thumbnailPublicId,
+        editDates: [...existing.editDates, new Date()],
+        author: data.author || existing.author,
+        status: Boolean(data.status === "true" || data.status === true),
+        content: contentBlocks,
+      },
+      { new: true }
+    );
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Update post error:", error);
+    res.status(500).json({ error: "Error while updating post" });
+  }
+};
 // DELETE: Silme
 exports.deletePost = async (req, res) => {
   const { id } = req.params;
