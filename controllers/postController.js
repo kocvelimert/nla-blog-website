@@ -178,6 +178,11 @@ exports.createPost = async (req, res) => {
       console.error("Error parsing content:", error);
       return res.status(400).json({ error: "Invalid content format" });
     }
+    
+
+    if (!req.files?.images || req.files.images.length === 0) {
+      console.warn("⚠️ No content images uploaded");
+    }
 
     // Process content images
     const contentImageFiles = req.files?.images || [];
@@ -194,7 +199,6 @@ exports.createPost = async (req, res) => {
           );
 
           if (file) {
-            const publicId = `content-images/${slug}-${imageIndex}`;
             try {
               const result = await uploadToCloudinary(
                 file.buffer,
@@ -236,112 +240,155 @@ exports.createPost = async (req, res) => {
 
 exports.updatePost = async (req, res) => {
   try {
-    const { id } = req.params;
-    const existing = await Post.findById(id);
-    if (!existing) return res.status(404).json({ error: "Post not found" });
+    console.log("🛠️ updatePost endpoint called")
+    console.log("req.files:", req.files)
+    console.log("req.body:", req.body)
 
-    const data = req.body;
-    const slug = generateSlug(data.title || existing.title);
-    
+    const { id } = req.params
+    const { title, formatCategory, contentCategory, tags, status, content, author } = req.body
+
+    const post = await Post.findById(id)
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" })
+    }
+
     // Handle thumbnail update
-    let thumbnailPublicId = existing.thumbnail;
+    let thumbnailPublicId = post.thumbnail
     if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
-      const thumbnailFile = req.files.thumbnail[0];
+      const thumbnailFile = req.files.thumbnail[0]
       try {
-        // Delete old thumbnail if it exists
-        if (existing.thumbnail) {
-          await cloudinary.uploader.destroy(existing.thumbnail);
-        }
-        
+        // Log thumbnail file details
+        console.log("Thumbnail file details:", {
+          originalname: thumbnailFile.originalname,
+          size: thumbnailFile.size,
+          mimetype: thumbnailFile.mimetype,
+        })
+
         const result = await uploadToCloudinary(
           thumbnailFile.buffer,
           "thumbnails",
-          `${slug}-thumbnail`
-        );
-        thumbnailPublicId = result.public_id;
+          `${post.slug}-thumbnail-${Date.now()}`,
+        )
+        thumbnailPublicId = result.public_id
+        console.log("✅ Thumbnail uploaded successfully:", result.public_id)
       } catch (error) {
-        console.error("Error updating thumbnail:", error);
+        console.error("Error uploading thumbnail:", error)
+        return res.status(500).json({ error: "Error uploading thumbnail: " + error.message })
       }
     }
 
     // Parse content blocks
-    let contentBlocks = existing.content;
+    let updatedContent = []
     try {
-      if (data.content) {
-        contentBlocks = Array.isArray(data.content) 
-          ? data.content 
-          : JSON.parse(data.content);
+      if (content) {
+        updatedContent = Array.isArray(content) ? content : JSON.parse(content)
+        console.log("Parsed content blocks:", updatedContent.length)
+      } else {
+        console.warn("⚠️ No content provided in request")
       }
     } catch (error) {
-      console.error("Error parsing content:", error);
-      return res.status(400).json({ error: "Invalid content format" });
+      console.error("Error parsing content:", error)
+      return res.status(400).json({ error: "Invalid content format: " + error.message })
     }
 
-    // Process content images
-    const contentImageFiles = req.files?.images || [];
-    let imageIndex = 1;
-    
-    for (let i = 0; i < contentBlocks.length; i++) {
-      const block = contentBlocks[i];
-      if (block.type === "image" && block.url) {
-        // If it's a new image upload (not an existing URL or public_id)
-        if (!block.url.startsWith("http") && !block.url.includes("/")) {
-          const originalName = block.url;
-          const file = contentImageFiles.find(
-            (f) => f.originalname === originalName
-          );
+    // Handle content images
+    const contentImageFiles = req.files?.images || []
+    console.log("Content image files count:", contentImageFiles.length)
+
+    let imageIndex = 1
+    for (let i = 0; i < updatedContent.length; i++) {
+      const block = updatedContent[i]
+      if (block.type === "image") {
+        // Check if this is a new image upload (not an existing URL or public_id)
+        if (block.url && !block.url.startsWith("http") && !block.url.includes("/")) {
+          const originalName = block.url
+          const file = contentImageFiles.find((f) => f.originalname === originalName)
 
           if (file) {
-            const publicId = `content-images/${slug}-${imageIndex}`;
             try {
+              console.log("Processing content image:", {
+                originalname: file.originalname,
+                size: file.size,
+                mimetype: file.mimetype,
+              })
+
               const result = await uploadToCloudinary(
                 file.buffer,
                 "content-images",
-                `${slug}-${imageIndex}`
-              );
-              contentBlocks[i].url = result.public_id;
-              imageIndex++;
+                `${post.slug}-content-${Date.now()}-${imageIndex}`,
+              )
+              updatedContent[i].url = result.public_id // Store public_id
+              console.log("✅ Content image uploaded:", result.public_id)
+              imageIndex++
             } catch (error) {
-              console.error("Error uploading content image:", error);
+              console.error("Error uploading content image:", error)
+              // Continue with other images instead of failing the whole request
             }
+          } else {
+            console.warn(`⚠️ No matching file found for ${originalName}`)
+          }
+        }
+        // Handle case where filename is used instead of url (from edit-post.js)
+        else if (block.filename && !block.filename.startsWith("http") && !block.filename.includes("/")) {
+          const originalName = block.filename
+          const file = contentImageFiles.find((f) => f.originalname === originalName)
+
+          if (file) {
+            try {
+              console.log("Processing content image from filename:", {
+                originalname: file.originalname,
+                size: file.size,
+                mimetype: file.mimetype,
+              })
+
+              const result = await uploadToCloudinary(
+                file.buffer,
+                "content-images",
+                `${post.slug}-content-${Date.now()}-${imageIndex}`,
+              )
+              updatedContent[i].url = result.public_id // Store public_id
+              delete updatedContent[i].filename // Remove filename property
+              console.log("✅ Content image uploaded from filename:", result.public_id)
+              imageIndex++
+            } catch (error) {
+              console.error("Error uploading content image from filename:", error)
+              // Continue with other images instead of failing the whole request
+            }
+          } else {
+            console.warn(`⚠️ No matching file found for ${originalName}`)
           }
         }
       }
     }
 
-    // Parse tags
-    let tags = existing.tags;
+    // Parse tags safely
+    let parsedTags = []
     try {
-      if (data.tags) {
-        tags = Array.isArray(data.tags) ? data.tags : JSON.parse(data.tags);
-      }
+      parsedTags = Array.isArray(tags) ? tags : JSON.parse(tags || "[]")
     } catch (error) {
-      console.error("Error parsing tags:", error);
+      console.error("Error parsing tags:", error)
     }
 
-    const updated = await Post.findByIdAndUpdate(
-      id,
-      {
-        title: data.title || existing.title,
-        slug: slug,
-        formatCategory: data.formatCategory || existing.formatCategory,
-        contentCategory: data.contentCategory || existing.contentCategory,
-        tags: tags,
-        thumbnail: thumbnailPublicId,
-        editDates: [...existing.editDates, new Date()],
-        author: data.author || existing.author,
-        status: Boolean(data.status === "true" || data.status === true),
-        content: contentBlocks,
-      },
-      { new: true }
-    );
+    // Save the updates
+    post.title = title || post.title
+    post.formatCategory = formatCategory || post.formatCategory
+    post.contentCategory = contentCategory || post.contentCategory
+    post.tags = parsedTags
+    post.status = Boolean(status === "true" || status === true)
+    post.content = updatedContent
+    post.thumbnail = thumbnailPublicId
+    post.author = author || post.author
+    post.editDates = [...(post.editDates || []), new Date()]
 
-    res.json(updated);
+    const updatedPost = await post.save()
+    res.status(200).json({ message: "Post updated successfully", post: updatedPost })
   } catch (error) {
-    console.error("Update post error:", error);
-    res.status(500).json({ error: "Error while updating post" });
+    console.error("Error updating post:", error)
+    res.status(500).json({ error: "Error updating post: " + error.message })
   }
-};
+}
+
+
 // DELETE: Silme
 exports.deletePost = async (req, res) => {
   const { id } = req.params;

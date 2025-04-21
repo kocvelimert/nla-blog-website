@@ -30,6 +30,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nla-local-server": "file:",
     "nodemon": "^3.1.9",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sharp": "^0.32.6"
   }
 }
