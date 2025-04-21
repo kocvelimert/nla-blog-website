@@ -17,7 +17,7 @@ const postSchema = new mongoose.Schema({
       text: String,
       url: String,
       caption: String,
-      author: String
+      subtext: String
     }
   ],
 });
