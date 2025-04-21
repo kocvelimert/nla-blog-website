@@ -3,13 +3,17 @@ const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
 
-// transformation settings
+// Improved transformation settings
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "blog_posts", // klasör adı (cloudinary içinde)
+    folder: "blog_posts",
     allowed_formats: ["jpg", "png", "jpeg", "webp"],
-    transformation: [{ width: 800, crop: "scale" }],
+    transformation: [
+      { width: 1600, crop: "limit" }, // Limit width but maintain aspect ratio
+      { quality: "auto:good" }, // Automatic quality optimization
+      { fetch_format: "auto" } // Best format per browser
+    ],
   },
 });
 

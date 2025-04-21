@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const Post = require("../models/Post");
-const { generateId, generateSlug } = require("../utils/helpers");
+const {generateSlug } = require("../utils/helpers");
 const cloudinary = require("cloudinary");
 const uploadToCloudinary = require('../utils/uploadToCloudinary.js');
 
