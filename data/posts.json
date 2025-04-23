@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": "tqogm5sziiol",
+    "title": "veli31",
+    "slug": "veli31",
+    "formatCategory": "anime",
+    "contentCategory": "haber",
+    "tags": [
+      "anime",
+      "manga"
+    ],
+    "thumbnail": "veli31.jpg",
+    "createdAt": "2025-04-17T21:30:09.885Z",
+    "editDates": [
+      "2025-04-17T21:39:22.611Z",
+      "2025-04-17T21:40:28.768Z"
+    ],
+    "author": "veli",
+    "status": true,
+    "content": [
+      {
+        "type": "image",
+        "data": {
+          "filename": ""
+        }
+      }
+    ]
+  }
+]
