@@ -115,16 +115,50 @@ exports.getPostsByCategory = async (req, res) => {
   }
 };
 
-// GET: Etikete göre
+// GET: Latest posts
+exports.getLatestPosts = async (req, res) => {
+  try {
+    const limit = Number.parseInt(req.query.limit) || 3
+
+    const posts = await Post.find({ status: true }).sort({ createdAt: -1 }).limit(limit)
+
+    res.json(posts)
+  } catch (error) {
+    console.error("Error fetching latest posts:", error)
+    res.status(500).json({ error: "Error fetching latest posts" })
+  }
+}
+
+// GET: Posts by tag
 exports.getPostsByTag = async (req, res) => {
-  const { tag } = req.params;
-  const posts = await Post.find({ tags: tag });
+  try {
+    const { tag } = req.params
+    const page = Number.parseInt(req.query.page) || 1
+    const limit = Number.parseInt(req.query.limit) || 6
+    const skip = (page - 1) * limit
 
-  if (posts.length === 0)
-    return res.status(404).json({ message: "No posts found for this tag" });
+    // Count total posts with this tag
+    const totalPosts = await Post.countDocuments({ tags: tag, status: true })
 
-  res.json(posts);
-};
+    // Calculate total pages
+    const totalPages = Math.ceil(totalPosts / limit)
+
+    // Get posts for current page
+    const posts = await Post.find({ tags: tag, status: true }).sort({ createdAt: -1 }).skip(skip).limit(limit)
+
+    // Return posts with pagination metadata
+    res.json({
+      posts,
+      totalPosts,
+      totalPages,
+      currentPage: page,
+      postsPerPage: limit,
+    })
+  } catch (error) {
+    console.error("Error fetching posts by tag:", error)
+    res.status(500).json({ error: "Error fetching posts" })
+  }
+}
 
 // GET: Tekil
 exports.getPostById = async (req, res) => {
