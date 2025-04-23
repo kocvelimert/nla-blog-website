@@ -57,19 +57,62 @@ exports.getAllPosts = async (req, res) => {
   }
 };
 
-// GET: Kategoriye göre
+// GET: Kategoriye göre (with pagination)
 exports.getPostsByCategory = async (req, res) => {
-  const { category } = req.params;
-  const posts = await Post.find({
-    $or: [{ formatCategory: category }, { contentCategory: category }],
-  });
-
-  if (posts.length === 0)
-    return res
-      .status(404)
-      .json({ message: "No posts found for this category" });
-
-  res.json(posts);
+  try {
+    const { category } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
+    
+    // Count total posts for this category
+    const totalPosts = await Post.countDocuments({
+      $or: [{ formatCategory: category }, { contentCategory: category }],
+    });
+    
+    // Calculate total pages
+    const totalPages = Math.ceil(totalPosts / limit);
+    
+    // Get posts for current page
+    const posts = await Post.find({
+      $or: [{ formatCategory: category }, { contentCategory: category }],
+    })
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip(skip)
+      .limit(limit);
+    
+    // Process thumbnails and return
+    const postsWithMedia = await Promise.all(
+      posts.map(async (post) => {
+        // Thumbnail için URL'yi ekle
+        if (post.thumbnail) {
+          const thumbnailUrl = cloudinary.url(post.thumbnail, {
+            resource_type: "image",
+            width: 600,
+            height: 400,
+            crop: "fill",
+            fetch_format: "auto",
+          });
+          post.thumbnail = thumbnailUrl;
+        }
+        
+        // Process other post data as needed
+        return post;
+      })
+    );
+    
+    // Return posts with pagination metadata
+    res.json({
+      posts: postsWithMedia,
+      totalPosts,
+      totalPages,
+      currentPage: page,
+      postsPerPage: limit
+    });
+  } catch (error) {
+    console.error("Error fetching posts by category:", error);
+    res.status(500).json({ error: "Error fetching posts" });
+  }
 };
 
 // GET: Etikete göre
