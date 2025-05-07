@@ -10,9 +10,10 @@ const upload = multer({
 })
 
 router.get("/", postController.getAllPosts)
-router.get("/:id", postController.getPostById)
 router.get("/category/:category", postController.getPostsByCategory)
 router.get("/tag/:tag", postController.getPostsByTag)
+router.get('/popular-tags', postController.getPopularTags);
+router.get("/:id", postController.getPostById)
 
 router.post(
   "/",
