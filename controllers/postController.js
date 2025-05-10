@@ -557,23 +557,46 @@ exports.deletePost = async (req, res) => {
 
     // Cloudinary'deki dosyaları sil
     if (post.thumbnail) {
-      const thumbnailPublicId = post.thumbnail.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(thumbnailPublicId, {
-        resource_type: "image",
-      });
+      try {
+        // If thumbnail is already a Cloudinary public_id, use it directly
+        const thumbnailPublicId = post.thumbnail.includes('/') ? 
+          extractCloudinaryPublicId(post.thumbnail) : post.thumbnail;
+        
+        console.log(`Deleting thumbnail: ${thumbnailPublicId}`);
+        await cloudinary.uploader.destroy(thumbnailPublicId, {
+          resource_type: "image",
+        });
+      } catch (error) {
+        console.error("Error deleting thumbnail:", error);
+      }
     }
 
     // İçerik resimlerini sil
     if (post.content && Array.isArray(post.content)) {
       for (let block of post.content) {
-        if (block.type === "image" && block.data?.filename) {
-          const imagePublicId = block.data.filename
-            .split("/")
-            .pop()
-            .split(".")[0];
-          await cloudinary.uploader.destroy(imagePublicId, {
-            resource_type: "image",
-          });
+        if (block.type === "image") {
+          try {
+            // Check for url (new format) or data.filename (old format)
+            let imagePublicId = null;
+            
+            if (block.url) {
+              // If it's a Cloudinary public_id, use it directly
+              imagePublicId = block.url.includes('/') ? 
+                extractCloudinaryPublicId(block.url) : block.url;
+            } else if (block.data?.filename) {
+              imagePublicId = block.data.filename.includes('/') ?
+                extractCloudinaryPublicId(block.data.filename) : block.data.filename;
+            }
+            
+            if (imagePublicId) {
+              console.log(`Deleting content image: ${imagePublicId}`);
+              await cloudinary.uploader.destroy(imagePublicId, {
+                resource_type: "image",
+              });
+            }
+          } catch (error) {
+            console.error("Error deleting content image:", error);
+          }
         }
       }
     }
