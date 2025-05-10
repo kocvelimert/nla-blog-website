@@ -3,11 +3,7 @@ const router = express.Router()
 const postController = require("../controllers/postController")
 const multer = require("multer")
 
-// Increase file size limit to 100MB
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit
-})
+
 
 // Create a special upload configuration that accepts any field name
 // This is needed for dynamic file field names from the frontend
