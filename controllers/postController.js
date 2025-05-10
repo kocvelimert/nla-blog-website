@@ -212,8 +212,13 @@ exports.createPost = async (req, res) => {
     console.log("req.files:", req.files);
     console.log("req.body:", req.body);
 
+    // Validate required fields
+    if (!req.body.title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
     const data = req.body;
-    const slug = generateSlug(data.title || "untitled");
+    const slug = generateSlug(data.title);
     const createdAt = new Date();
 
     // Parse tags safely
@@ -257,12 +262,11 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ error: "Invalid content format" });
     }
     
-
+    // Process content images
     if (!req.files?.images || req.files.images.length === 0) {
       console.warn("⚠️ No content images uploaded");
     }
 
-    // Process content images
     const contentImageFiles = req.files?.images || [];
     let imageIndex = 1;
     
@@ -297,14 +301,14 @@ exports.createPost = async (req, res) => {
     const post = new Post({
       title: data.title,
       slug,
-      formatCategory: data.formatCategory,
-      contentCategory: data.contentCategory,
+      formatCategory: data.formatCategory || 'Uncategorized',
+      contentCategory: data.contentCategory || 'Uncategorized',
       tags: tags,
       thumbnail: thumbnailPublicId,
       createdAt,
       editDates: [],
-      author: data.author || "unknown",
-      status: Boolean(data.status === "true" || data.status === true),
+      author: data.author || "Anonymous",
+      status: data.status !== undefined ? Boolean(data.status === "true" || data.status === true) : true,
       content: contentBlocks,
     });
 
