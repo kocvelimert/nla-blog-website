@@ -5,6 +5,7 @@ const Post = require("../models/Post");
 const {generateSlug } = require("../utils/helpers");
 const cloudinary = require("cloudinary");
 const uploadToCloudinary = require('../utils/uploadToCloudinary.js');
+const slugify = require('slugify');
 
 
 // GET: Hepsi
@@ -315,6 +316,17 @@ exports.createPost = async (req, res) => {
   }
 };
 
+const extractCloudinaryPublicId = (url) => {
+  try {
+    if (!url.includes("/upload/")) return null
+    const parts = url.split("/upload/")[1]
+    const publicIdWithExt = parts.split(".")[0]
+    return publicIdWithExt
+  } catch {
+    return null
+  }
+}
+
 exports.updatePost = async (req, res) => {
   try {
     console.log("🛠️ updatePost endpoint called")
@@ -329,22 +341,52 @@ exports.updatePost = async (req, res) => {
       return res.status(404).json({ error: "Post not found" })
     }
 
-    // Handle thumbnail update
+    const oldSlug = post.slug
+    const newSlug = slugify(title || post.title, { lower: true })
+
+    const ensureFolderExists = async (folder) => {
+      try {
+        await cloudinary.api.create_folder(folder)
+        console.log(`📁 Ensured folder exists: ${folder}`)
+      } catch (err) {
+        if (err.http_code !== 409) console.warn(`⚠️ Folder creation failed for ${folder}:`, err.message)
+      }
+    }
+
+    const folders = [
+      "archive",
+      "thumbnails",
+      "content-images",
+      "archive/thumbnails",
+      "archive/content-images",
+    ]
+    for (const folder of folders) {
+      await ensureFolderExists(folder)
+    }
+
     let thumbnailPublicId = post.thumbnail
     if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
+      let oldThumbId = post.thumbnail
+      if (oldThumbId && oldThumbId.startsWith("http")) {
+        oldThumbId = extractCloudinaryPublicId(oldThumbId)
+      }
+
+      if (oldThumbId && oldThumbId.startsWith("thumbnails")) {
+        const archivePath = oldThumbId.replace("thumbnails", "archive/thumbnails")
+        try {
+          await cloudinary.uploader.rename(oldThumbId, archivePath, { overwrite: true })
+          console.log("📁 Archived old thumbnail to:", archivePath)
+        } catch (err) {
+          console.warn("⚠️ Thumbnail archiving failed or not found:", err.message)
+        }
+      }
+
       const thumbnailFile = req.files.thumbnail[0]
       try {
-        // Log thumbnail file details
-        console.log("Thumbnail file details:", {
-          originalname: thumbnailFile.originalname,
-          size: thumbnailFile.size,
-          mimetype: thumbnailFile.mimetype,
-        })
-
         const result = await uploadToCloudinary(
           thumbnailFile.buffer,
           "thumbnails",
-          `${post.slug}-thumbnail-${Date.now()}`,
+          `${newSlug}-thumbnail-${Date.now()}`
         )
         thumbnailPublicId = result.public_id
         console.log("✅ Thumbnail uploaded successfully:", result.public_id)
@@ -354,7 +396,6 @@ exports.updatePost = async (req, res) => {
       }
     }
 
-    // Parse content blocks
     let updatedContent = []
     try {
       if (content) {
@@ -368,7 +409,6 @@ exports.updatePost = async (req, res) => {
       return res.status(400).json({ error: "Invalid content format: " + error.message })
     }
 
-    // Handle content images
     const contentImageFiles = req.files?.images || []
     console.log("Content image files count:", contentImageFiles.length)
 
@@ -376,78 +416,74 @@ exports.updatePost = async (req, res) => {
     for (let i = 0; i < updatedContent.length; i++) {
       const block = updatedContent[i]
       if (block.type === "image") {
-        // Check if this is a new image upload (not an existing URL or public_id)
-        if (block.url && !block.url.startsWith("http") && !block.url.includes("/")) {
-          const originalName = block.url
-          const file = contentImageFiles.find((f) => f.originalname === originalName)
+        let oldPublicId = block.url
+        if (oldPublicId && oldPublicId.startsWith("http")) {
+          oldPublicId = extractCloudinaryPublicId(oldPublicId)
+        }
 
-          if (file) {
+        const targetName = block.filename || block.url || ""
+        let file = contentImageFiles.find((f) =>
+          [targetName, block.filename, extractCloudinaryPublicId(block.url)]
+            .filter(Boolean)
+            .some(key => f.originalname.includes(key))
+        )
+
+        if (!file && contentImageFiles[i]) {
+          file = contentImageFiles[i] // fallback by index
+        }
+
+        if (file) {
+          if (oldPublicId && oldPublicId.startsWith("content-images")) {
+            const archivePath = oldPublicId.replace("content-images", "archive/content-images")
             try {
-              console.log("Processing content image:", {
-                originalname: file.originalname,
-                size: file.size,
-                mimetype: file.mimetype,
-              })
-
-              const result = await uploadToCloudinary(
-                file.buffer,
-                "content-images",
-                `${post.slug}-content-${Date.now()}-${imageIndex}`,
-              )
-              updatedContent[i].url = result.public_id // Store public_id
-              console.log("✅ Content image uploaded:", result.public_id)
-              imageIndex++
-            } catch (error) {
-              console.error("Error uploading content image:", error)
-              // Continue with other images instead of failing the whole request
+              await cloudinary.uploader.rename(oldPublicId, archivePath, { overwrite: true })
+              console.log("📁 Archived old content image to:", archivePath)
+            } catch (err) {
+              console.warn("⚠️ Content image archiving failed or not found:", err.message)
             }
-          } else {
-            console.warn(`⚠️ No matching file found for ${originalName}`)
+          }
+
+          try {
+            const result = await uploadToCloudinary(
+              file.buffer,
+              "content-images",
+              `${newSlug}-content-${Date.now()}-${imageIndex}`
+            )
+            updatedContent[i].url = result.public_id
+            delete updatedContent[i].filename
+            console.log("✅ Content image uploaded:", result.public_id)
+            imageIndex++
+          } catch (error) {
+            console.error("Error uploading content image:", error)
           }
         }
-        // Handle case where filename is used instead of url (from edit-post.js)
-        else if (block.filename && !block.filename.startsWith("http") && !block.filename.includes("/")) {
-          const originalName = block.filename
-          const file = contentImageFiles.find((f) => f.originalname === originalName)
-
-          if (file) {
-            try {
-              console.log("Processing content image from filename:", {
-                originalname: file.originalname,
-                size: file.size,
-                mimetype: file.mimetype,
-              })
-
-              const result = await uploadToCloudinary(
-                file.buffer,
-                "content-images",
-                `${post.slug}-content-${Date.now()}-${imageIndex}`,
-              )
-              updatedContent[i].url = result.public_id // Store public_id
-              delete updatedContent[i].filename // Remove filename property
-              console.log("✅ Content image uploaded from filename:", result.public_id)
-              imageIndex++
-            } catch (error) {
-              console.error("Error uploading content image from filename:", error)
-              // Continue with other images instead of failing the whole request
-            }
-          } else {
-            console.warn(`⚠️ No matching file found for ${originalName}`)
-          }
-        }
+      } else {
+        delete block.filename
       }
     }
 
-    // Parse tags safely
+    updatedContent = updatedContent.map(block => {
+      if (block.type === "image" && block.url?.startsWith("http")) {
+        console.warn(`Image block still has HTTP URL instead of Cloudinary public_id: ${block.url}`)
+      }
+      return block
+    })
+
+    console.log("✅ Final updatedContent:", JSON.stringify(updatedContent, null, 2))
+
     let parsedTags = []
     try {
-      parsedTags = Array.isArray(tags) ? tags : JSON.parse(tags || "[]")
+      if (Array.isArray(tags)) parsedTags = tags
+      else if (typeof tags === "string") {
+        parsedTags = JSON.parse(tags)
+        if (!Array.isArray(parsedTags)) parsedTags = tags.split(",").map(t => t.trim())
+      }
     } catch (error) {
       console.error("Error parsing tags:", error)
     }
 
-    // Save the updates
     post.title = title || post.title
+    post.slug = newSlug
     post.formatCategory = formatCategory || post.formatCategory
     post.contentCategory = contentCategory || post.contentCategory
     post.tags = parsedTags
@@ -455,7 +491,7 @@ exports.updatePost = async (req, res) => {
     post.content = updatedContent
     post.thumbnail = thumbnailPublicId
     post.author = author || post.author
-    post.editDates = [...(post.editDates || []), new Date()]
+    post.editDates = [...(post.editDates || []), new Date().toISOString()]
 
     const updatedPost = await post.save()
     res.status(200).json({ message: "Post updated successfully", post: updatedPost })
