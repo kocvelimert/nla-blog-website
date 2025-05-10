@@ -217,6 +217,10 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
+    if (!req.files?.thumbnail || req.files.thumbnail.length === 0) {
+      return res.status(400).json({ error: 'Thumbnail image is required' });
+    }
+
     const data = req.body;
     const slug = generateSlug(data.title);
     const createdAt = new Date();
@@ -243,6 +247,7 @@ exports.createPost = async (req, res) => {
           `${slug}-thumbnail`
         );
         thumbnailPublicId = result.public_id;
+        console.log("✅ Thumbnail uploaded to Cloudinary:", thumbnailPublicId);
       } catch (error) {
         console.error("Error uploading thumbnail:", error);
         return res.status(500).json({ error: "Error uploading thumbnail" });
@@ -262,22 +267,33 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ error: "Invalid content format" });
     }
     
-    // Process content images
-    if (!req.files?.images || req.files.images.length === 0) {
-      console.warn("⚠️ No content images uploaded");
+    // Check for content images in the request files
+    // First, collect all the files that aren't the thumbnail
+    const contentImageFiles = [];
+    for (const fieldName in req.files) {
+      if (fieldName !== 'thumbnail') {
+        const files = req.files[fieldName];
+        if (Array.isArray(files)) {
+          contentImageFiles.push(...files);
+        } else if (files) {
+          contentImageFiles.push(files);
+        }
+      }
     }
 
-    const contentImageFiles = req.files?.images || [];
+    console.log(`Found ${contentImageFiles.length} content image files`);    
     let imageIndex = 1;
     
+    // Process content blocks with images
     for (let i = 0; i < contentBlocks.length; i++) {
       const block = contentBlocks[i];
-      if (block.type === "image" && block.url) {
-        // If it's a new image upload (not an existing URL)
-        if (!block.url.startsWith("http")) {
-          const originalName = block.url;
+      if (block.type === "image") {
+        // Check if we have a filename to match with uploaded files
+        if (block.filename) {
+          console.log(`Looking for file with name: ${block.filename}`);
+          // Find the matching file in the uploaded files
           const file = contentImageFiles.find(
-            (f) => f.originalname === originalName
+            (f) => f.originalname === block.filename || f.fieldname === block.filename
           );
 
           if (file) {
@@ -285,7 +301,31 @@ exports.createPost = async (req, res) => {
               const result = await uploadToCloudinary(
                 file.buffer,
                 "content-images",
-                `${slug}-${imageIndex}`
+                `${slug}-content-${imageIndex}`
+              );
+              contentBlocks[i].url = result.public_id; // Store public_id
+              delete contentBlocks[i].filename; // Remove filename as it's no longer needed
+              console.log(`✅ Content image uploaded: ${result.public_id}`);
+              imageIndex++;
+            } catch (error) {
+              console.error("Error uploading content image:", error);
+            }
+          } else {
+            console.warn(`⚠️ Could not find file for: ${block.filename}`);
+          }
+        } else if (block.url && !block.url.startsWith("http")) {
+          // Backward compatibility: if url is set but not an http URL, treat it as a filename
+          const originalName = block.url;
+          const file = contentImageFiles.find(
+            (f) => f.originalname === originalName || f.fieldname === originalName
+          );
+
+          if (file) {
+            try {
+              const result = await uploadToCloudinary(
+                file.buffer,
+                "content-images",
+                `${slug}-content-${imageIndex}`
               );
               contentBlocks[i].url = result.public_id; // Store public_id
               imageIndex++;
