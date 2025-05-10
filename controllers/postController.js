@@ -229,6 +229,7 @@ exports.createPost = async (req, res) => {
       }
     } catch (error) {
       console.error("Error parsing tags:", error);
+      // Continue with empty tags rather than failing the request
     }
 
     // Handle thumbnail
@@ -240,12 +241,13 @@ exports.createPost = async (req, res) => {
         const result = await uploadToCloudinary(
           thumbnailFile.buffer,
           "thumbnails",
-          `${slug}-thumbnail`
+          `${slug}-thumbnail-${Date.now()}`
         );
         thumbnailPublicId = result.public_id;
+        console.log("Thumbnail uploaded successfully:", result.public_id);
       } catch (error) {
         console.error("Error uploading thumbnail:", error);
-        return res.status(500).json({ error: "Error uploading thumbnail" });
+        return res.status(500).json({ error: "Error uploading thumbnail: " + error.message });
       }
     }
 
@@ -256,15 +258,18 @@ exports.createPost = async (req, res) => {
         contentBlocks = Array.isArray(data.content) 
           ? data.content 
           : JSON.parse(data.content);
+        console.log(`Parsed ${contentBlocks.length} content blocks`);
       }
     } catch (error) {
       console.error("Error parsing content:", error);
-      return res.status(400).json({ error: "Invalid content format" });
+      return res.status(400).json({ error: "Invalid content format: " + error.message });
     }
     
     // Process content images
     if (!req.files?.images || req.files.images.length === 0) {
       console.warn("⚠️ No content images uploaded");
+    } else {
+      console.log(`Processing ${req.files.images.length} content images`);
     }
 
     const contentImageFiles = req.files?.images || [];
@@ -285,13 +290,17 @@ exports.createPost = async (req, res) => {
               const result = await uploadToCloudinary(
                 file.buffer,
                 "content-images",
-                `${slug}-${imageIndex}`
+                `${slug}-content-${Date.now()}-${imageIndex}`
               );
               contentBlocks[i].url = result.public_id; // Store public_id
+              console.log(`Content image ${imageIndex} uploaded:`, result.public_id);
               imageIndex++;
             } catch (error) {
               console.error("Error uploading content image:", error);
+              // Continue with other images rather than failing the request
             }
+          } else {
+            console.warn(`No matching file found for image with name: ${originalName}`);
           }
         }
       }
@@ -313,10 +322,11 @@ exports.createPost = async (req, res) => {
     });
 
     const saved = await post.save();
+    console.log("✅ Post created successfully with ID:", saved._id);
     res.status(201).json(saved);
   } catch (error) {
     console.error("Create post error:", error);
-    res.status(500).json({ error: "Error while saving post" });
+    res.status(500).json({ error: "Error while saving post: " + error.message });
   }
 };
 
