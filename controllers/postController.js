@@ -217,7 +217,9 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    if (!req.files?.thumbnail || req.files.thumbnail.length === 0) {
+    // With multer.any(), files are in an array instead of grouped by field name
+    const thumbnailFile = req.files?.find(file => file.fieldname === 'thumbnail');
+    if (!thumbnailFile) {
       return res.status(400).json({ error: 'Thumbnail image is required' });
     }
 
@@ -237,9 +239,8 @@ exports.createPost = async (req, res) => {
 
     // Handle thumbnail
     let thumbnailPublicId = null;
-    if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
-      console.log("✅ Thumbnail file received");
-      const thumbnailFile = req.files.thumbnail[0];
+    if (thumbnailFile) {
+      console.log("✅ Thumbnail file received:", thumbnailFile.originalname);
       try {
         const result = await uploadToCloudinary(
           thumbnailFile.buffer,
@@ -267,20 +268,10 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ error: "Invalid content format" });
     }
     
-    // Check for content images in the request files
-    // First, collect all the files that aren't the thumbnail
-    const contentImageFiles = [];
-    for (const fieldName in req.files) {
-      if (fieldName !== 'thumbnail') {
-        const files = req.files[fieldName];
-        if (Array.isArray(files)) {
-          contentImageFiles.push(...files);
-        } else if (files) {
-          contentImageFiles.push(files);
-        }
-      }
-    }
-
+    // With multer.any(), all files are in an array
+    // Get all files except the thumbnail
+    const contentImageFiles = req.files?.filter(file => file.fieldname !== 'thumbnail') || [];
+    
     console.log(`Found ${contentImageFiles.length} content image files`);    
     let imageIndex = 1;
     
