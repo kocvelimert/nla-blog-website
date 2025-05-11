@@ -368,6 +368,16 @@ exports.createPost = async (req, res) => {
           cleanBlock.text = block.content || block.text || '';
           break;
           
+        case 'bulletList':
+        case 'orderedList':
+          // For list blocks, preserve the content which contains the HTML
+          cleanBlock.text = block.content || block.text || '';
+          // If there's no content/text but there's HTML content, use that
+          if (!cleanBlock.text && block.html) {
+            cleanBlock.text = block.html;
+          }
+          break;
+          
         case 'image':
           // For image blocks, preserve the url/src and filename fields
           cleanBlock.url = block.url || block.src || '';
