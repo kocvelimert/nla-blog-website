@@ -259,12 +259,31 @@ exports.createPost = async (req, res) => {
     let contentBlocks = [];
     try {
       if (data.content) {
-        contentBlocks = Array.isArray(data.content) 
-          ? data.content 
-          : JSON.parse(data.content);
+        console.log('Content before parsing:', typeof data.content, data.content);
+        
+        // Handle different content formats
+        if (Array.isArray(data.content)) {
+          contentBlocks = data.content;
+        } else if (typeof data.content === 'string') {
+          try {
+            contentBlocks = JSON.parse(data.content);
+            if (!Array.isArray(contentBlocks)) {
+              console.warn('Content parsed but is not an array:', contentBlocks);
+              contentBlocks = [{ type: 'paragraph', text: data.content }];
+            }
+          } catch (parseError) {
+            console.warn('Content could not be parsed as JSON, treating as text:', parseError);
+            contentBlocks = [{ type: 'paragraph', text: data.content }];
+          }
+        } else if (typeof data.content === 'object') {
+          // If it's already an object but not an array, wrap it
+          contentBlocks = [data.content];
+        }
+        
+        console.log('Content after parsing:', contentBlocks);
       }
     } catch (error) {
-      console.error("Error parsing content:", error);
+      console.error("Error processing content:", error);
       return res.status(400).json({ error: "Invalid content format" });
     }
     
@@ -329,7 +348,39 @@ exports.createPost = async (req, res) => {
     }
 
     // Create and save the post
-    const post = new Post({
+    console.log('Creating post with content blocks:', JSON.stringify(contentBlocks, null, 2));
+    
+    // Make sure content blocks match the schema structure
+    const formattedContentBlocks = contentBlocks.map(block => {
+      // Ensure each block has the required 'type' field
+      if (!block.type) {
+        console.warn('Block missing type, defaulting to paragraph:', block);
+        block.type = 'paragraph';
+      }
+      
+      // Create a clean block with only the fields defined in the schema
+      const cleanBlock = {
+        type: block.type,
+        text: block.text || '',
+        url: block.url || '',
+        caption: block.caption || '',
+        subtext: block.subtext || '',
+      };
+      
+      // If it's a data object with nested properties, flatten it
+      if (block.data) {
+        if (block.data.text) cleanBlock.text = block.data.text;
+        if (block.data.url) cleanBlock.url = block.data.url;
+        if (block.data.caption) cleanBlock.caption = block.data.caption;
+        if (block.data.subtext) cleanBlock.subtext = block.data.subtext;
+      }
+      
+      return cleanBlock;
+    });
+    
+    console.log('Formatted content blocks:', JSON.stringify(formattedContentBlocks, null, 2));
+    
+    const postData = {
       title: data.title,
       slug,
       formatCategory: data.formatCategory || 'Uncategorized',
@@ -340,11 +391,22 @@ exports.createPost = async (req, res) => {
       editDates: [],
       author: data.author || "Anonymous",
       status: data.status !== undefined ? Boolean(data.status === "true" || data.status === true) : true,
-      content: contentBlocks,
-    });
+      content: formattedContentBlocks,
+    };
+    
+    console.log('Final post data:', JSON.stringify(postData, null, 2));
+    
+    const post = new Post(postData);
 
-    const saved = await post.save();
-    res.status(201).json(saved);
+    try {
+      const saved = await post.save();
+      console.log('Post saved successfully with ID:', saved._id);
+      console.log('Saved content:', JSON.stringify(saved.content, null, 2));
+      res.status(201).json(saved);
+    } catch (saveError) {
+      console.error('Error saving post to database:', saveError);
+      return res.status(500).json({ error: "Error saving post to database: " + saveError.message });
+    }
   } catch (error) {
     console.error("Create post error:", error);
     res.status(500).json({ error: "Error while saving post" });
