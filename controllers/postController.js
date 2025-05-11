@@ -506,7 +506,9 @@ exports.updatePost = async (req, res) => {
     }
 
     let thumbnailPublicId = post.thumbnail
-    if (req.files?.thumbnail && req.files.thumbnail.length > 0) {
+    // With multer.any(), files are in an array instead of grouped by field name
+    const thumbnailFile = req.files?.find(file => file.fieldname === 'thumbnail');
+    if (thumbnailFile) {
       let oldThumbId = post.thumbnail
       if (oldThumbId && oldThumbId.startsWith("http")) {
         oldThumbId = extractCloudinaryPublicId(oldThumbId)
@@ -522,7 +524,7 @@ exports.updatePost = async (req, res) => {
         }
       }
 
-      const thumbnailFile = req.files.thumbnail[0]
+      console.log("✅ Thumbnail file received for update:", thumbnailFile.originalname);
       try {
         const result = await uploadToCloudinary(
           thumbnailFile.buffer,
@@ -540,77 +542,187 @@ exports.updatePost = async (req, res) => {
     let updatedContent = []
     try {
       if (content) {
-        updatedContent = Array.isArray(content) ? content : JSON.parse(content)
-        console.log("Parsed content blocks:", updatedContent.length)
+        console.log('Content before parsing:', typeof content, content);
+        
+        // Handle different content formats
+        if (Array.isArray(content)) {
+          updatedContent = content;
+        } else if (typeof content === 'string') {
+          try {
+            updatedContent = JSON.parse(content);
+            if (!Array.isArray(updatedContent)) {
+              console.warn('Content parsed but is not an array:', updatedContent);
+              updatedContent = [{ type: 'paragraph', text: content }];
+            }
+          } catch (parseError) {
+            console.warn('Content could not be parsed as JSON, treating as text:', parseError);
+            updatedContent = [{ type: 'paragraph', text: content }];
+          }
+        } else if (typeof content === 'object') {
+          // If it's already an object but not an array, wrap it
+          updatedContent = [content];
+        }
+        
+        console.log('Content after parsing:', updatedContent);
       } else {
         console.warn("⚠️ No content provided in request")
+        updatedContent = post.content || [];
       }
     } catch (error) {
-      console.error("Error parsing content:", error)
+      console.error("Error processing content:", error)
       return res.status(400).json({ error: "Invalid content format: " + error.message })
     }
 
-    const contentImageFiles = req.files?.images || []
-    console.log("Content image files count:", contentImageFiles.length)
-
-    let imageIndex = 1
+    // With multer.any(), all files are in an array
+    // Get all files except the thumbnail
+    const contentImageFiles = req.files?.filter(file => file.fieldname !== 'thumbnail') || [];
+    console.log(`Found ${contentImageFiles.length} content image files for update`);    
+    
+    let imageIndex = 1;
+    // Process content blocks with images
     for (let i = 0; i < updatedContent.length; i++) {
-      const block = updatedContent[i]
+      const block = updatedContent[i];
       if (block.type === "image") {
-        let oldPublicId = block.url
+        console.log(`Processing image block for update:`, block);
+        
+        // Save the old public ID for archiving
+        let oldPublicId = block.url;
         if (oldPublicId && oldPublicId.startsWith("http")) {
-          oldPublicId = extractCloudinaryPublicId(oldPublicId)
+          oldPublicId = extractCloudinaryPublicId(oldPublicId);
         }
+        
+        // Check all possible image identifiers
+        const imageIdentifier = block.filename || block.src || (block.url && !block.url.startsWith("http") ? block.url : null);
+        
+        if (imageIdentifier) {
+          console.log(`Looking for file with identifier: ${imageIdentifier}`);
+          
+          // Try to find the file by various matching methods
+          let file = contentImageFiles.find(f => 
+            f.originalname === imageIdentifier || 
+            f.fieldname === imageIdentifier ||
+            f.fieldname.includes(imageIdentifier) ||
+            (typeof f.originalname === 'string' && imageIdentifier.includes(f.originalname))
+          );
+          
+          // If no exact match, try to find by index if we have files available
+          if (!file && contentImageFiles.length > 0 && i < contentImageFiles.length) {
+            console.log(`No exact match found, trying to use file at index ${i}`);
+            file = contentImageFiles[i];
+          }
 
-        const targetName = block.filename || block.url || ""
-        let file = contentImageFiles.find((f) =>
-          [targetName, block.filename, extractCloudinaryPublicId(block.url)]
-            .filter(Boolean)
-            .some(key => f.originalname.includes(key))
-        )
-
-        if (!file && contentImageFiles[i]) {
-          file = contentImageFiles[i] // fallback by index
-        }
-
-        if (file) {
-          if (oldPublicId && oldPublicId.startsWith("content-images")) {
-            const archivePath = oldPublicId.replace("content-images", "archive/content-images")
-            try {
-              await cloudinary.uploader.rename(oldPublicId, archivePath, { overwrite: true })
-              console.log("📁 Archived old content image to:", archivePath)
-            } catch (err) {
-              console.warn("⚠️ Content image archiving failed or not found:", err.message)
+          if (file) {
+            // Archive old image if it exists
+            if (oldPublicId && oldPublicId.startsWith("content-images")) {
+              const archivePath = oldPublicId.replace("content-images", "archive/content-images");
+              try {
+                await cloudinary.uploader.rename(oldPublicId, archivePath, { overwrite: true });
+                console.log("📁 Archived old content image to:", archivePath);
+              } catch (err) {
+                console.warn("⚠️ Content image archiving failed or not found:", err.message);
+              }
             }
-          }
 
-          try {
-            const result = await uploadToCloudinary(
-              file.buffer,
-              "content-images",
-              `${newSlug}-content-${Date.now()}-${imageIndex}`
-            )
-            updatedContent[i].url = result.public_id
-            delete updatedContent[i].filename
-            console.log("✅ Content image uploaded:", result.public_id)
-            imageIndex++
-          } catch (error) {
-            console.error("Error uploading content image:", error)
+            try {
+              console.log(`Found file to upload: ${file.originalname || file.fieldname}`);
+              const result = await uploadToCloudinary(
+                file.buffer,
+                "content-images",
+                `${newSlug}-content-${Date.now()}-${imageIndex}`
+              );
+              
+              // Store the Cloudinary public_id in the url field
+              updatedContent[i].url = result.public_id;
+              
+              // Remove filename as it's no longer needed
+              delete updatedContent[i].filename;
+              delete updatedContent[i].src;
+              
+              console.log(`✅ Content image uploaded to Cloudinary: ${result.public_id}`);
+              imageIndex++;
+            } catch (error) {
+              console.error("Error uploading content image:", error);
+            }
+          } else {
+            console.warn(`⚠️ Could not find file for image: ${imageIdentifier}`);
           }
+        } else if (block.url) {
+          // Keep existing image URL if no new file was uploaded
+          console.log(`Keeping existing image URL: ${block.url}`);
+        } else {
+          console.warn(`⚠️ Image block has no filename or URL identifier:`, block);
         }
-      } else {
-        delete block.filename
       }
     }
 
-    updatedContent = updatedContent.map(block => {
-      if (block.type === "image" && block.url?.startsWith("http")) {
-        console.warn(`Image block still has HTTP URL instead of Cloudinary public_id: ${block.url}`)
+    // Make sure content blocks match the schema structure and frontend format
+    const formattedContentBlocks = updatedContent.map(block => {
+      // Ensure each block has the required 'type' field
+      if (!block.type) {
+        console.warn('Block missing type, defaulting to paragraph:', block);
+        block.type = 'paragraph';
       }
-      return block
-    })
+      
+      // Handle different block types according to frontend format
+      let cleanBlock = { type: block.type };
+      
+      switch (block.type) {
+        case 'paragraph':
+        case 'heading':
+          // For text blocks, use the content or text field
+          cleanBlock.text = block.content || block.text || '';
+          break;
+          
+        case 'bulletList':
+        case 'orderedList':
+          // For list blocks, preserve the content which contains the HTML
+          cleanBlock.text = block.content || block.text || '';
+          // If there's no content/text but there's HTML content, use that
+          if (!cleanBlock.text && block.html) {
+            cleanBlock.text = block.html;
+          }
+          break;
+          
+        case 'image':
+          // For image blocks, preserve the url/src and filename fields
+          cleanBlock.url = block.url || block.src || '';
+          // Make sure we keep the caption/alt text
+          cleanBlock.caption = block.caption || block.alt || '';
+          
+          console.log('Processing image block for database:', { 
+            original: block,
+            cleaned: cleanBlock 
+          });
+          break;
+          
+        case 'youtube':
+          // For YouTube blocks, preserve the videoId
+          cleanBlock.url = block.videoId || block.url || '';
+          break;
+          
+        case 'blockquote':
+          // For quote blocks
+          cleanBlock.text = block.content || block.text || '';
+          break;
+          
+        default:
+          // For any other block types, copy all properties
+          Object.assign(cleanBlock, block);
+      }
+      
+      // If it's a data object with nested properties, flatten it
+      if (block.data) {
+        if (block.data.text) cleanBlock.text = block.data.text;
+        if (block.data.url) cleanBlock.url = block.data.url;
+        if (block.data.caption) cleanBlock.caption = block.data.caption;
+        if (block.data.filename) cleanBlock.filename = block.data.filename;
+      }
+      
+      console.log(`Processed ${block.type} block:`, cleanBlock);
+      return cleanBlock;
+    });
 
-    console.log("✅ Final updatedContent:", JSON.stringify(updatedContent, null, 2))
+    console.log("✅ Final formatted content:", JSON.stringify(formattedContentBlocks, null, 2));
 
     let parsedTags = []
     try {
@@ -629,7 +741,7 @@ exports.updatePost = async (req, res) => {
     post.contentCategory = contentCategory || post.contentCategory
     post.tags = parsedTags
     post.status = Boolean(status === "true" || status === true)
-    post.content = updatedContent
+    post.content = formattedContentBlocks
     post.thumbnail = thumbnailPublicId
     post.author = author || post.author
     post.editDates = [...(post.editDates || []), new Date().toISOString()]
@@ -648,10 +760,19 @@ exports.deletePost = async (req, res) => {
   const { id } = req.params;
 
   try {
+    console.log(`🗑️ deletePost endpoint called for post ID: ${id}`);
+    
     // Veritabanındaki postu bul
     const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ error: "Post not found" });
-
+    if (!post) {
+      console.warn(`⚠️ Post not found with ID: ${id}`);
+      return res.status(404).json({ error: "Post not found" });
+    }
+    
+    console.log(`Found post to delete: ${post.title} (${post._id})`);
+    let deletedMediaCount = 0;
+    let failedMediaCount = 0;
+    
     // Cloudinary'deki dosyaları sil
     if (post.thumbnail) {
       try {
@@ -660,16 +781,27 @@ exports.deletePost = async (req, res) => {
           extractCloudinaryPublicId(post.thumbnail) : post.thumbnail;
         
         console.log(`Deleting thumbnail: ${thumbnailPublicId}`);
-        await cloudinary.uploader.destroy(thumbnailPublicId, {
+        const result = await cloudinary.uploader.destroy(thumbnailPublicId, {
           resource_type: "image",
         });
+        
+        if (result.result === 'ok') {
+          console.log(`✅ Thumbnail deleted successfully: ${thumbnailPublicId}`);
+          deletedMediaCount++;
+        } else {
+          console.warn(`⚠️ Thumbnail deletion returned unexpected result:`, result);
+          failedMediaCount++;
+        }
       } catch (error) {
         console.error("Error deleting thumbnail:", error);
+        failedMediaCount++;
       }
     }
 
     // İçerik resimlerini sil
     if (post.content && Array.isArray(post.content)) {
+      console.log(`Processing ${post.content.length} content blocks for deletion`);
+      
       for (let block of post.content) {
         if (block.type === "image") {
           try {
@@ -687,26 +819,43 @@ exports.deletePost = async (req, res) => {
             
             if (imagePublicId) {
               console.log(`Deleting content image: ${imagePublicId}`);
-              await cloudinary.uploader.destroy(imagePublicId, {
+              const result = await cloudinary.uploader.destroy(imagePublicId, {
                 resource_type: "image",
               });
+              
+              if (result.result === 'ok') {
+                console.log(`✅ Content image deleted successfully: ${imagePublicId}`);
+                deletedMediaCount++;
+              } else {
+                console.warn(`⚠️ Content image deletion returned unexpected result:`, result);
+                failedMediaCount++;
+              }
+            } else {
+              console.warn(`⚠️ Image block has no valid public ID:`, block);
             }
           } catch (error) {
             console.error("Error deleting content image:", error);
+            failedMediaCount++;
           }
         }
       }
     }
 
     // Veritabanından sil
-    await Post.findByIdAndDelete(id);
+    const deleteResult = await Post.findByIdAndDelete(id);
+    if (!deleteResult) {
+      console.warn(`⚠️ Post was not found in database during deletion: ${id}`);
+    }
+    
+    console.log(`✅ Post deleted successfully. Media deleted: ${deletedMediaCount}, Failed: ${failedMediaCount}`);
 
     res.json({
-      message:
-        "Post deleted successfully, and associated media removed from Cloudinary.",
+      message: `Post deleted successfully. ${deletedMediaCount} media files removed from Cloudinary.`,
+      deletedMediaCount,
+      failedMediaCount
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error while deleting post" });
+    console.error("Error deleting post:", error);
+    res.status(500).json({ error: `Error while deleting post: ${error.message}` });
   }
 };
