@@ -298,51 +298,54 @@ exports.createPost = async (req, res) => {
     for (let i = 0; i < contentBlocks.length; i++) {
       const block = contentBlocks[i];
       if (block.type === "image") {
-        // Check if we have a filename to match with uploaded files
-        if (block.filename) {
-          console.log(`Looking for file with name: ${block.filename}`);
-          // Find the matching file in the uploaded files
-          const file = contentImageFiles.find(
-            (f) => f.originalname === block.filename || f.fieldname === block.filename
+        console.log(`Processing image block:`, block);
+        
+        // Check all possible image identifiers
+        const imageIdentifier = block.filename || block.src || (block.url && !block.url.startsWith("http") ? block.url : null);
+        
+        if (imageIdentifier) {
+          console.log(`Looking for file with identifier: ${imageIdentifier}`);
+          
+          // Try to find the file by various matching methods
+          let file = contentImageFiles.find(f => 
+            f.originalname === imageIdentifier || 
+            f.fieldname === imageIdentifier ||
+            f.fieldname.includes(imageIdentifier) ||
+            (typeof f.originalname === 'string' && imageIdentifier.includes(f.originalname))
           );
+          
+          // If no exact match, try to find by index if we have files available
+          if (!file && contentImageFiles.length > 0 && i < contentImageFiles.length) {
+            console.log(`No exact match found, trying to use file at index ${i}`);
+            file = contentImageFiles[i];
+          }
 
           if (file) {
             try {
+              console.log(`Found file to upload: ${file.originalname || file.fieldname}`);
               const result = await uploadToCloudinary(
                 file.buffer,
                 "content-images",
                 `${slug}-content-${imageIndex}`
               );
-              contentBlocks[i].url = result.public_id; // Store public_id
-              delete contentBlocks[i].filename; // Remove filename as it's no longer needed
-              console.log(`✅ Content image uploaded: ${result.public_id}`);
+              
+              // Store the Cloudinary public_id in the url field
+              contentBlocks[i].url = result.public_id;
+              
+              // Remove filename as it's no longer needed
+              delete contentBlocks[i].filename;
+              delete contentBlocks[i].src;
+              
+              console.log(`✅ Content image uploaded to Cloudinary: ${result.public_id}`);
               imageIndex++;
             } catch (error) {
               console.error("Error uploading content image:", error);
             }
           } else {
-            console.warn(`⚠️ Could not find file for: ${block.filename}`);
+            console.warn(`⚠️ Could not find file for image: ${imageIdentifier}`);
           }
-        } else if (block.url && !block.url.startsWith("http")) {
-          // Backward compatibility: if url is set but not an http URL, treat it as a filename
-          const originalName = block.url;
-          const file = contentImageFiles.find(
-            (f) => f.originalname === originalName || f.fieldname === originalName
-          );
-
-          if (file) {
-            try {
-              const result = await uploadToCloudinary(
-                file.buffer,
-                "content-images",
-                `${slug}-content-${imageIndex}`
-              );
-              contentBlocks[i].url = result.public_id; // Store public_id
-              imageIndex++;
-            } catch (error) {
-              console.error("Error uploading content image:", error);
-            }
-          }
+        } else {
+          console.warn(`⚠️ Image block has no filename or URL identifier:`, block);
         }
       }
     }
@@ -381,8 +384,15 @@ exports.createPost = async (req, res) => {
         case 'image':
           // For image blocks, preserve the url/src and filename fields
           cleanBlock.url = block.url || block.src || '';
+          // Make sure we keep the caption/alt text
+          cleanBlock.caption = block.caption || block.alt || '';
+          // Keep the filename temporarily if it exists (for debugging)
           if (block.filename) cleanBlock.filename = block.filename;
-          if (block.alt) cleanBlock.caption = block.alt;
+          
+          console.log('Processing image block for database:', { 
+            original: block,
+            cleaned: cleanBlock 
+          });
           break;
           
         case 'youtube':
