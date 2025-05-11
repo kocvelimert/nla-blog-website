@@ -161,6 +161,48 @@ exports.getPostsByTag = async (req, res) => {
   }
 }
 
+// GET: Popular tags (top 10 most used)
+exports.getPopularTags = async (req, res) => {
+  try {
+    // Aggregate to find the most used tags
+    const popularTags = await Post.aggregate([
+      // Only consider published posts
+      { $match: { status: true } },
+      
+      // Unwind the tags array to create a document for each tag
+      { $unwind: "$tags" },
+      
+      // Group by tag and count occurrences
+      { 
+        $group: { 
+          _id: "$tags", 
+          count: { $sum: 1 } 
+        } 
+      },
+      
+      // Sort by count in descending order
+      { $sort: { count: -1 } },
+      
+      // Limit to top 10
+      { $limit: 10 },
+      
+      // Project to rename _id to name for cleaner output
+      { 
+        $project: { 
+          _id: 0, 
+          name: "$_id", 
+          count: 1 
+        } 
+      }
+    ]);
+
+    res.json(popularTags);
+  } catch (error) {
+    console.error("Error fetching popular tags:", error);
+    res.status(500).json({ error: "Error fetching popular tags" });
+  }
+};
+
 // GET: Tekil
 exports.getPostById = async (req, res) => {
   try {

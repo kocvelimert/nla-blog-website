@@ -13,6 +13,7 @@ const uploadAny = multer({
 }).any()
 
 router.get("/", postController.getAllPosts)
+router.get('/popular-tags', postController.getPopularTags);
 router.get("/:id", postController.getPostById)
 router.get("/category/:category", postController.getPostsByCategory)
 router.get("/tag/:tag", postController.getPostsByTag)
