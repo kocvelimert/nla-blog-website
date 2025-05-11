@@ -350,7 +350,7 @@ exports.createPost = async (req, res) => {
     // Create and save the post
     console.log('Creating post with content blocks:', JSON.stringify(contentBlocks, null, 2));
     
-    // Make sure content blocks match the schema structure
+    // Make sure content blocks match the schema structure and frontend format
     const formattedContentBlocks = contentBlocks.map(block => {
       // Ensure each block has the required 'type' field
       if (!block.type) {
@@ -358,23 +358,47 @@ exports.createPost = async (req, res) => {
         block.type = 'paragraph';
       }
       
-      // Create a clean block with only the fields defined in the schema
-      const cleanBlock = {
-        type: block.type,
-        text: block.text || '',
-        url: block.url || '',
-        caption: block.caption || '',
-        subtext: block.subtext || '',
-      };
+      // Handle different block types according to frontend format
+      let cleanBlock = { type: block.type };
+      
+      switch (block.type) {
+        case 'paragraph':
+        case 'heading':
+          // For text blocks, use the content or text field
+          cleanBlock.text = block.content || block.text || '';
+          break;
+          
+        case 'image':
+          // For image blocks, preserve the url/src and filename fields
+          cleanBlock.url = block.url || block.src || '';
+          if (block.filename) cleanBlock.filename = block.filename;
+          if (block.alt) cleanBlock.caption = block.alt;
+          break;
+          
+        case 'youtube':
+          // For YouTube blocks, preserve the videoId
+          cleanBlock.url = block.videoId || block.url || '';
+          break;
+          
+        case 'blockquote':
+          // For quote blocks
+          cleanBlock.text = block.content || block.text || '';
+          break;
+          
+        default:
+          // For any other block types, copy all properties
+          Object.assign(cleanBlock, block);
+      }
       
       // If it's a data object with nested properties, flatten it
       if (block.data) {
         if (block.data.text) cleanBlock.text = block.data.text;
         if (block.data.url) cleanBlock.url = block.data.url;
         if (block.data.caption) cleanBlock.caption = block.data.caption;
-        if (block.data.subtext) cleanBlock.subtext = block.data.subtext;
+        if (block.data.filename) cleanBlock.filename = block.data.filename;
       }
       
+      console.log(`Processed ${block.type} block:`, cleanBlock);
       return cleanBlock;
     });
     
