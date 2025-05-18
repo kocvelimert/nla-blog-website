@@ -9,6 +9,7 @@ const cloudinary = require("cloudinary").v2;
 const cloudinaryService = require("../services/cloudinaryService")
 const contentService = require("../services/contentService")
 const imageService = require("../services/imageService")
+const mediaService = require("../services/mediaService")
 
 // Import error handling utilities
 const { asyncHandler, createError } = require("../utils/errorHandler")
@@ -17,67 +18,12 @@ const { asyncHandler, createError } = require("../utils/errorHandler")
 exports.getAllPosts = asyncHandler(async (req, res) => {
   console.log("📚 Fetching all posts");
   
-  const posts = await Post.find();
-  console.log(`Found ${posts.length} posts`);
+  // Only fetch published posts (status: true)
+  const posts = await Post.find({ status: true });
+  console.log(`Found ${posts.length} published posts`);
 
-  // Process each post to add media URLs
-  const postsWithMedia = await Promise.all(
-    posts.map(async (post) => {
-      // Process thumbnail URL
-      if (post.thumbnail) {
-        try {
-          const thumbnailUrl = cloudinary.url(post.thumbnail, {
-            resource_type: "image",
-            width: 600,
-            height: 400,
-            crop: "fill",
-            fetch_format: "auto",
-          });
-          post.thumbnail = thumbnailUrl;
-        } catch (error) {
-          console.warn(`⚠️ Error processing thumbnail URL for post ${post._id}: ${error.message}`);
-          // Keep original thumbnail value if URL generation fails
-        }
-      }
-
-      // Process content images
-      if (post.content && Array.isArray(post.content)) {
-        post.content = await Promise.all(
-          post.content.map(async (block) => {
-            if (block.type === "image") {
-              try {
-                // Handle both new format (url) and old format (data.filename)
-                const imageId = block.url || (block.data?.filename);
-                
-                if (imageId) {
-                  const imageUrl = cloudinary.url(imageId, {
-                    resource_type: "image",
-                    width: 800,
-                    height: 600,
-                    crop: "fill",
-                    fetch_format: "auto",
-                  });
-                  
-                  // Update the appropriate field based on format
-                  if (block.url) {
-                    block.url = imageUrl;
-                  } else if (block.data?.filename) {
-                    block.data.filename = imageUrl;
-                  }
-                }
-              } catch (error) {
-                console.warn(`⚠️ Error processing content image URL: ${error.message}`);
-                // Keep original values if URL generation fails
-              }
-            }
-            return block;
-          })
-        );
-      }
-
-      return post;
-    })
-  );
+  // Process posts with media URLs using the mediaService
+  const postsWithMedia = await mediaService.processPostMedia(posts);
 
   console.log("✅ Successfully processed all posts with media URLs");
   res.json(postsWithMedia);
@@ -92,9 +38,10 @@ exports.getPostsByCategory = asyncHandler(async (req, res) => {
   
   console.log(`📁 Fetching posts for category: ${category}, page: ${page}, limit: ${limit}`);
   
-  // Count total posts for this category
+  // Count total posts for this category (only published ones)
   const totalPosts = await Post.countDocuments({
     $or: [{ formatCategory: category }, { contentCategory: category }],
+    status: true
   });
   
   // Calculate total pages
@@ -102,9 +49,10 @@ exports.getPostsByCategory = asyncHandler(async (req, res) => {
   
   console.log(`Found ${totalPosts} total posts in category ${category}, ${totalPages} pages`);
   
-  // Get posts for current page
+  // Get posts for current page (only published ones)
   const posts = await Post.find({
     $or: [{ formatCategory: category }, { contentCategory: category }],
+    status: true
   })
     .sort({ createdAt: -1 }) // Sort by newest first
     .skip(skip)
@@ -112,29 +60,9 @@ exports.getPostsByCategory = asyncHandler(async (req, res) => {
   
   console.log(`Retrieved ${posts.length} posts for current page`);
   
-  // Process thumbnails and return
-  const postsWithMedia = await Promise.all(
-    posts.map(async (post) => {
-      // Process thumbnail URL
-      if (post.thumbnail) {
-        try {
-          const thumbnailUrl = cloudinary.url(post.thumbnail, {
-            resource_type: "image",
-            width: 600,
-            height: 400,
-            crop: "fill",
-            fetch_format: "auto",
-          });
-          post.thumbnail = thumbnailUrl;
-        } catch (error) {
-          console.warn(`⚠️ Error processing thumbnail URL for post ${post._id}: ${error.message}`);
-          // Keep original thumbnail value if URL generation fails
-        }
-      }
-      
-      return post;
-    })
-  );
+  // Process posts with media URLs using the mediaService
+  // We only need thumbnails for category listings, so set processContent to false
+  const postsWithMedia = await mediaService.processPostMedia(posts, false);
   
   console.log(`✅ Successfully processed ${postsWithMedia.length} posts with media URLs`);
   
@@ -156,27 +84,9 @@ exports.getLatestPosts = asyncHandler(async (req, res) => {
   const posts = await Post.find({ status: true }).sort({ createdAt: -1 }).limit(limit);
   console.log(`Found ${posts.length} latest posts`);
 
-  // Process thumbnails if needed
-  const processedPosts = await Promise.all(
-    posts.map(async (post) => {
-      // Process thumbnail URL if needed
-      if (post.thumbnail) {
-        try {
-          const thumbnailUrl = cloudinary.url(post.thumbnail, {
-            resource_type: "image",
-            width: 600,
-            height: 400,
-            crop: "fill",
-            fetch_format: "auto",
-          });
-          post.thumbnail = thumbnailUrl;
-        } catch (error) {
-          console.warn(`⚠️ Error processing thumbnail URL for post ${post._id}: ${error.message}`);
-        }
-      }
-      return post;
-    })
-  );
+  // Process posts with media URLs using the mediaService
+  // We only need thumbnails for latest posts listings, so set processContent to false
+  const processedPosts = await mediaService.processPostMedia(posts, false);
 
   console.log(`✅ Successfully processed ${processedPosts.length} latest posts`);
   res.json(processedPosts);
@@ -207,27 +117,9 @@ exports.getPostsByTag = asyncHandler(async (req, res) => {
 
   console.log(`Retrieved ${posts.length} posts for current page`);
 
-  // Process thumbnails if needed
-  const processedPosts = await Promise.all(
-    posts.map(async (post) => {
-      // Process thumbnail URL if needed
-      if (post.thumbnail) {
-        try {
-          const thumbnailUrl = cloudinary.url(post.thumbnail, {
-            resource_type: "image",
-            width: 600,
-            height: 400,
-            crop: "fill",
-            fetch_format: "auto",
-          });
-          post.thumbnail = thumbnailUrl;
-        } catch (error) {
-          console.warn(`⚠️ Error processing thumbnail URL for post ${post._id}: ${error.message}`);
-        }
-      }
-      return post;
-    })
-  );
+  // Process posts with media URLs using the mediaService
+  // We only need thumbnails for tag listings, so set processContent to false
+  const processedPosts = await mediaService.processPostMedia(posts, false);
 
   console.log(`✅ Successfully processed ${processedPosts.length} posts with tag ${tag}`);
   res.json({
@@ -282,69 +174,21 @@ exports.getPopularTags = asyncHandler(async (req, res) => {
 exports.getPostById = asyncHandler(async (req, res) => {
   console.log(`🔍 Fetching post with ID: ${req.params.id}`);
   
-  const post = await Post.findById(req.params.id);
+  // Only fetch published posts (status: true)
+  const post = await Post.findOne({ _id: req.params.id, status: true });
   if (!post) {
-    console.warn(`⚠️ Post not found with ID: ${req.params.id}`);
-    return res.status(404).json({ message: "Post not found" });
+    console.warn(`⚠️ Post not found or not published with ID: ${req.params.id}`);
+    return res.status(404).json({ message: "Post not found or not published" });
   }
 
   console.log(`Found post: ${post.title} (${post._id})`);
   
-  // Process thumbnail URL
-  if (post.thumbnail) {
-    try {
-      // If it's already a Cloudinary public_id, generate URL
-      const thumbnailUrl = cloudinary.url(post.thumbnail, {
-        resource_type: "image",
-        width: 600,
-        height: 400,
-        crop: "fill",
-        fetch_format: "auto",
-      });
-      post.thumbnail = thumbnailUrl;
-    } catch (error) {
-      console.warn(`⚠️ Error processing thumbnail URL: ${error.message}`);
-      // Keep the original thumbnail value if URL generation fails
-    }
-  }
+  // Process post with media URLs using the mediaService
+  // For single post view, we need to process both thumbnail and content images
+  const processedPost = await mediaService.processPostMedia(post, true);
 
-  // Process content images
-  if (post.content && Array.isArray(post.content)) {
-    post.content = await Promise.all(
-      post.content.map(async (block) => {
-        if (block.type === "image") {
-          try {
-            // Handle both new format (url) and old format (data.filename)
-            const imageId = block.url || (block.data?.filename);
-            
-            if (imageId) {
-              const imageUrl = cloudinary.url(imageId, {
-                resource_type: "image",
-                width: 800,
-                height: 600,
-                crop: "fill",
-                fetch_format: "auto",
-              });
-              
-              // Update the appropriate field based on format
-              if (block.url) {
-                block.url = imageUrl;
-              } else if (block.data?.filename) {
-                block.data.filename = imageUrl;
-              }
-            }
-          } catch (error) {
-            console.warn(`⚠️ Error processing content image URL: ${error.message}`);
-            // Keep the original values if URL generation fails
-          }
-        }
-        return block;
-      })
-    );
-  }
-
-  console.log(`✅ Successfully processed post data for: ${post.title}`);
-  res.json(post);
+  console.log(`✅ Successfully processed post data for: ${processedPost.title}`);
+  res.json(processedPost);
 });
 
 

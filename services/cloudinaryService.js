@@ -101,7 +101,9 @@ const processImageBuffer = async (buffer, type = "content") => {
     );
 
     // Define target settings based on image type
-    const settings = type === "thumbnail" ? { width: 1200, height: 800, quality: 80 } : { width: 1600, quality: 80 };
+    const settings = type === "thumbnail" 
+      ? { width: 1200, height: 800, quality: 90 } 
+      : { width: 1920, quality: 90 };
 
     // Process the image
     let processedBuffer = await sharp(buffer)
@@ -111,7 +113,11 @@ const processImageBuffer = async (buffer, type = "content") => {
         fit: settings.height ? "cover" : "inside",
         withoutEnlargement: true,
       })
-      .jpeg({ quality: settings.quality, progressive: true })
+      .jpeg({ 
+        quality: settings.quality, 
+        progressive: true,
+        force: false // Don't force JPEG if the original is in a better format
+      })
       .toBuffer();
 
     // Check if the processed image is still too large (> 9.5MB)
@@ -160,7 +166,11 @@ const uploadToCloudinary = async (fileBuffer, folder, filename) => {
           folder: folder,
           public_id: filename,
           resource_type: "auto",
-          transformation: [{ quality: "auto:good" }, { fetch_format: "auto" }],
+          transformation: [
+            { quality: "auto:best" }, 
+            { fetch_format: "auto" },
+            { flags: "progressive" }
+          ],
         },
         (error, result) => {
           if (error) {
