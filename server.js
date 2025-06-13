@@ -23,6 +23,14 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "100mb" }))
 // Register routes
 app.use("/posts", postRoutes)
 
+// Serve static files from the public folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Optional: Serve index.html by default
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`)

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - New Post</title>
+    <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="menu-item">
+            <a href="admin-page.html">Manage Posts</a>
+        </div>
+        <div class="menu-item">
+            <a href="admin-newpost.html">New Post</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="content-left">
+            <h1>New Post</h1>
+            <form id="newPostForm" enctype="multipart/form-data">
+                <div class="form-section">
+                    <label for="title">Post Title</label>
+                    <br>
+                    <input type="text" id="title" name="title" required>
+                </div>
+
+                <div class="form-section">
+                    <label for="formatCategory">Format Category</label>
+                    <br>
+                    <select id="formatCategory" name="formatCategory" required>
+                        <option value="anime">Anime</option>
+                        <option value="manga">Manga</option>
+                        <option value="manhwa">Manhwa</option>
+                    </select>
+                </div>
+
+                <div class="form-section">
+                    <label for="contentCategory">Content Category</label>
+                    <br>
+                    <select id="contentCategory" name="contentCategory" required>
+                        <option value="haber">Haber</option>
+                        <option value="liste">Liste</option>
+                        <option value="oneri">Öneri</option>
+                        <option value="inceleme">İnceleme</option>
+                        <option value="teori">Teori</option>
+                    </select>
+                </div>
+
+                <div class="form-section">
+                    <label for="tags">Tags</label>
+                    <br>
+                    <input type="text" id="tags-input" placeholder="Separated by commas" required/>
+                </div>
+
+                <div class="form-section">
+                    <label for="author">Author</label>
+                    <br>
+                    <select id="author" name="author" required>
+                        <option value="veli">Veli</option>
+                        <option value="evo">Evo</option>
+                    </select>
+                </div>
+
+                <!-- TipTap Editor -->
+                <div class="form-section">
+                    <label for="editor">Content</label>
+                    <div class="editor-container">
+                        <div class="editor-toolbar">
+                            <!-- Content Block Buttons -->
+                            <button type="button" onclick="addContentBlock('paragraph')" id="paragraph-btn" title="Add Paragraph Block" class="block-btn">¶</button>
+                            <button type="button" onclick="addContentBlock('heading')" id="heading-btn" title="Add Heading Block" class="block-btn">H</button>
+                            <button type="button" onclick="addContentBlock('bulletList')" id="bullet-list-btn" title="Add Bullet List Block" class="block-btn">•</button>
+                            <button type="button" onclick="addContentBlock('orderedList')" id="ordered-list-btn" title="Add Ordered List Block" class="block-btn">1.</button>
+                            <button type="button" onclick="addContentBlock('blockquote')" id="quote-btn" title="Add Quote Block" class="block-btn">❝</button>
+                            <div class="separator"></div>
+                            <!-- Media Buttons -->
+                            <button type="button" onclick="addContentBlock('image')" id="image-btn" title="Add Image Block" class="block-btn">🖼️</button>
+                            <button type="button" onclick="addContentBlock('youtube')" id="youtube-btn" title="Add YouTube Block" class="block-btn">📺</button>
+
+                            <div class="separator"></div>
+                            <!-- Text Formatting -->
+                            <button type="button" onclick="formatText('bold')" id="bold-btn" title="Bold">B</button>
+                            <button type="button" onclick="formatText('italic')" id="italic-btn" title="Italic">I</button>
+                            <button type="button" onclick="formatText('link')" id="link-btn" title="Link">🔗</button>
+                        </div>
+                        <div id="editor"></div>
+                        <input type="hidden" id="editor-content" name="editor-content">
+                    </div>
+                </div>
+
+                <button type="submit" id="save-post-btn">Save Post</button>
+            </form>
+        </div>
+
+        <div class="content-right">
+            <div class="thumbnail-uploader">
+                <h3>Post Thumbnail</h3>
+                <label class="thumbnail" for="thumbnail">Upload Thumbnail</label>
+                <input type="file" id="thumbnail" name="thumbnail" form="newPostForm" required accept="image/*">
+                <img id="thumbnail-preview" class="thumbnail-preview" alt="Thumbnail Preview" style="display: none;">
+            </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script type="module" src="assets/js/editor.js"></script>
+    <script type="module" src="assets/js/editor-buttons.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
