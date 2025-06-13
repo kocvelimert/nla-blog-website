@@ -9,6 +9,9 @@ const contentBlocks = [];
 let activeBlock = null;
 let sortableInstance = null;
 
+// Expose contentBlocks globally for access from other files
+window.contentBlocks = contentBlocks;
+
 // Add a new content block
 window.addContentBlock = function (type) {
   console.log(`Adding content block of type: ${type}`);

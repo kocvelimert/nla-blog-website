@@ -19,7 +19,7 @@ exports.getAllPosts = asyncHandler(async (req, res) => {
   console.log("📚 Fetching all posts");
   
   // Only fetch published posts (status: true)
-  const posts = await Post.find({ status: true });
+  const posts = await Post.find({ status: true }).lean();
   console.log(`Found ${posts.length} published posts`);
 
   // Process posts with media URLs using the mediaService
@@ -56,7 +56,8 @@ exports.getPostsByCategory = asyncHandler(async (req, res) => {
   })
     .sort({ createdAt: -1 }) // Sort by newest first
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
   
   console.log(`Retrieved ${posts.length} posts for current page`);
   
@@ -81,7 +82,7 @@ exports.getLatestPosts = asyncHandler(async (req, res) => {
   const limit = Number.parseInt(req.query.limit) || 3;
   console.log(`📈 Fetching latest ${limit} posts`);
 
-  const posts = await Post.find({ status: true }).sort({ createdAt: -1 }).limit(limit);
+  const posts = await Post.find({ status: true }).sort({ createdAt: -1 }).limit(limit).lean();
   console.log(`Found ${posts.length} latest posts`);
 
   // Process posts with media URLs using the mediaService
@@ -113,7 +114,8 @@ exports.getPostsByTag = asyncHandler(async (req, res) => {
   const posts = await Post.find({ tags: tag, status: true })
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
 
   console.log(`Retrieved ${posts.length} posts for current page`);
 
@@ -219,7 +221,7 @@ exports.getPostById = asyncHandler(async (req, res) => {
   console.log(`🔍 Fetching post with ID: ${req.params.id}`);
   
   // Only fetch published posts (status: true)
-  const post = await Post.findOne({ _id: req.params.id, status: true });
+  const post = await Post.findOne({ _id: req.params.id, status: true }).lean();
   if (!post) {
     console.warn(`⚠️ Post not found or not published with ID: ${req.params.id}`);
     return res.status(404).json({ message: "Post not found or not published" });

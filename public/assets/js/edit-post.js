@@ -100,7 +100,10 @@ function setThumbnailPreview(thumbnailUrl) {
  * @param {Array} contentData - The content blocks data from the post
  */
 function createContentBlocksFromData(contentData) {
+  console.log('Creating content blocks from data:', contentData);
+  
   if (!Array.isArray(contentData) || contentData.length === 0) {
+    console.log('No content data found, creating default paragraph block');
     window.addContentBlock('paragraph');
     return;
   }
@@ -115,7 +118,9 @@ function createContentBlocksFromData(contentData) {
   blocksContainer.innerHTML = '';
   
   // Process each content block
-  contentData.forEach(block => {
+  contentData.forEach((block, index) => {
+    console.log(`Processing block ${index}:`, block);
+    
     // Map old block types to new block types
     let blockType = block.type;
     
@@ -128,7 +133,7 @@ function createContentBlocksFromData(contentData) {
       blockType = 'orderedList';
     }
     
-    console.log(`Processing block of type: ${blockType}`, block);
+    console.log(`Processing block ${index} of type: ${blockType}`, block);
     
     // Create the appropriate block type
     const blockElement = window.addContentBlock(blockType);
@@ -137,9 +142,26 @@ function createContentBlocksFromData(contentData) {
       return;
     }
     
-    // Populate the block with content based on its type
-    populateBlockContent(blockElement, blockType, block);
+    // Add a delay to ensure the block and TipTap editor are fully initialized before populating
+    setTimeout(() => {
+      populateBlockContent(blockElement, blockType, block);
+    }, 500 + (100 * index)); // Give even more time for TipTap initialization and stagger the population
   });
+}
+
+/**
+ * Helper function to set content via innerHTML as fallback
+ * @param {HTMLElement} blockElement - The block element
+ * @param {string} content - The content to set
+ * @param {string} blockType - The block type
+ */
+function setContentViaInnerHTML(blockElement, content, blockType) {
+  const proseMirrorElement = blockElement.querySelector('.ProseMirror');
+  if (proseMirrorElement) {
+    const finalContent = content || (blockType === 'heading' ? '<h4>Heading</h4>' : '<p>Paragraph text</p>');
+    proseMirrorElement.innerHTML = finalContent;
+    console.log(`Set content via innerHTML for ${blockType}:`, finalContent.substring(0, 50) + '...');
+  }
 }
 
 /**
@@ -149,20 +171,104 @@ function createContentBlocksFromData(contentData) {
  * @param {Object} blockData - The block data from the post
  */
 function populateBlockContent(blockElement, blockType, blockData) {
+  console.log(`Populating ${blockType} block with data:`, blockData);
+  
   switch (blockType) {
     case 'paragraph':
     case 'heading':
-      const editor = blockElement.querySelector('.ProseMirror');
-      if (editor) {
-        editor.innerHTML = blockData.text || blockData.content || 
-          (blockType === 'heading' ? '<h4>Heading</h4>' : '<p>Paragraph text</p>');
+      // Find the TipTap editor instance for this block
+      const blockId = blockElement.dataset.blockId;
+      
+      // Get the content from blockData
+      let content = '';
+      if (blockData.content) {
+        content = blockData.content;
+      } else if (blockData.text) {
+        content = blockData.text;
+      } else if (blockData.data && blockData.data.text) {
+        content = blockData.data.text;
+      } else if (blockData.data && blockData.data.content) {
+        content = blockData.data.content;
+      }
+      
+      console.log(`Setting ${blockType} content:`, content);
+      
+      // Find the editor instance in the global contentBlocks array
+      if (window.contentBlocks && window.contentBlocks.length > 0) {
+        console.log(`Looking for block ${blockId} in contentBlocks array with ${window.contentBlocks.length} blocks`);
+        const blockData_editor = window.contentBlocks.find(block => block.id === blockId);
+        
+        if (blockData_editor && blockData_editor.editor) {
+          console.log(`Found TipTap editor for block ${blockId}, setting content`);
+          // Use TipTap's setContent method to properly set the content
+          try {
+            const finalContent = content || (blockType === 'heading' ? '<h4>Heading</h4>' : '<p>Paragraph text</p>');
+            blockData_editor.editor.commands.setContent(finalContent);
+            console.log(`✅ Successfully set content for ${blockType} block using TipTap API`);
+          } catch (error) {
+            console.warn(`❌ Failed to set content using TipTap API, falling back to innerHTML:`, error);
+            // Fallback to innerHTML method
+            setContentViaInnerHTML(blockElement, content, blockType);
+          }
+        } else {
+          console.warn(`❌ No TipTap editor instance found for block ${blockId} (found block: ${!!blockData_editor}, has editor: ${!!(blockData_editor && blockData_editor.editor)})`);
+          // Try again after a short delay
+          setTimeout(() => {
+            populateBlockContent(blockElement, blockType, { content, text: content });
+          }, 500);
+        }
+      } else {
+        console.warn(`❌ contentBlocks not available or empty (exists: ${!!window.contentBlocks}, length: ${window.contentBlocks ? window.contentBlocks.length : 'N/A'})`);
+        // Try again after a short delay
+        setTimeout(() => {
+          populateBlockContent(blockElement, blockType, { content, text: content });
+        }, 500);
       }
       break;
       
     case 'blockquote':
-      const quoteEditor = blockElement.querySelector('.ProseMirror');
-      if (quoteEditor) {
-        quoteEditor.innerHTML = `<blockquote>${blockData.text || ''}</blockquote>`;
+      // Find the TipTap editor instance for this quote block
+      const quoteBlockId = blockElement.dataset.blockId;
+      
+      // Get the raw content
+      let rawQuoteContent = blockData.text || blockData.content || '';
+      
+      // Check if content already contains blockquote tags to avoid nesting
+      let quoteContent;
+      if (rawQuoteContent.includes('<blockquote>')) {
+        // Content already has blockquote tags, use as-is
+        quoteContent = rawQuoteContent;
+      } else {
+        // Content doesn't have blockquote tags, wrap it
+        quoteContent = `<blockquote>${rawQuoteContent}</blockquote>`;
+      }
+      
+      console.log(`Setting quote content:`, quoteContent);
+      
+      // Find the editor instance and use TipTap API
+      if (window.contentBlocks && window.contentBlocks.length > 0) {
+        const quoteBlockData = window.contentBlocks.find(block => block.id === quoteBlockId);
+        if (quoteBlockData && quoteBlockData.editor) {
+          try {
+            quoteBlockData.editor.commands.setContent(quoteContent);
+            console.log(`✅ Successfully set quote content using TipTap API`);
+          } catch (error) {
+            console.warn(`❌ Failed to set quote content using TipTap API, falling back to innerHTML:`, error);
+            setContentViaInnerHTML(blockElement, quoteContent, 'blockquote');
+          }
+        } else {
+          console.warn(`❌ No TipTap editor found for quote block ${quoteBlockId}, retrying...`);
+          // Try again after a short delay
+          setTimeout(() => {
+            populateBlockContent(blockElement, blockType, blockData);
+          }, 500);
+        }
+      } else {
+        console.warn(`❌ contentBlocks not available for quote block, retrying...`);
+        // Try again after a short delay
+        setTimeout(() => {
+          populateBlockContent(blockElement, blockType, blockData);
+        }, 500);
       }
       break;
       
@@ -204,30 +310,54 @@ function populateBlockContent(blockElement, blockType, blockData) {
       
     case 'bulletList':
     case 'orderedList':
-      const listEditor = blockElement.querySelector('.ProseMirror');
-      if (listEditor) {
-        const listType = blockType === 'bulletList' ? 'ul' : 'ol';
-        
-        // Handle different possible list content formats
-        let listContent = '';
-        
-        if (blockData.content) {
-          // If content is already in HTML format, use it directly
-          listContent = blockData.content;
-        } else if (blockData.items && Array.isArray(blockData.items)) {
-          // If content is provided as an array of items
-          listContent = `<${listType}>${blockData.items.map(item => `<li>${item}</li>`).join('')}</${listType}>`;
-        } else if (blockData.text) {
-          // If content is provided as a single text string, try to parse it as list items
-          const items = blockData.text.split('\n').filter(item => item.trim());
-          listContent = `<${listType}>${items.map(item => `<li>${item}</li>`).join('')}</${listType}>`;
+      // Find the TipTap editor instance for this list block
+      const listBlockId = blockElement.dataset.blockId;
+      const listType = blockType === 'bulletList' ? 'ul' : 'ol';
+      
+      // Handle different possible list content formats
+      let listContent = '';
+      
+      if (blockData.content) {
+        // If content is already in HTML format, use it directly
+        listContent = blockData.content;
+      } else if (blockData.items && Array.isArray(blockData.items)) {
+        // If content is provided as an array of items
+        listContent = `<${listType}>${blockData.items.map(item => `<li>${item}</li>`).join('')}</${listType}>`;
+      } else if (blockData.text) {
+        // If content is provided as a single text string, try to parse it as list items
+        const items = blockData.text.split('\n').filter(item => item.trim());
+        listContent = `<${listType}>${items.map(item => `<li>${item}</li>`).join('')}</${listType}>`;
+      } else {
+        // Default empty list
+        listContent = `<${listType}><li>List item</li></${listType}>`;
+      }
+      
+      console.log(`Setting list content for ${blockType}:`, listContent);
+      
+      // Find the editor instance and use TipTap API
+      if (window.contentBlocks && window.contentBlocks.length > 0) {
+        const listBlockData = window.contentBlocks.find(block => block.id === listBlockId);
+        if (listBlockData && listBlockData.editor) {
+          try {
+            listBlockData.editor.commands.setContent(listContent);
+            console.log(`✅ Successfully set list content using TipTap API`);
+          } catch (error) {
+            console.warn(`❌ Failed to set list content using TipTap API, falling back to innerHTML:`, error);
+            setContentViaInnerHTML(blockElement, listContent, blockType);
+          }
         } else {
-          // Default empty list
-          listContent = `<${listType}><li>List item</li></${listType}>`;
+          console.warn(`❌ No TipTap editor found for list block ${listBlockId}, retrying...`);
+          // Try again after a short delay
+          setTimeout(() => {
+            populateBlockContent(blockElement, blockType, blockData);
+          }, 500);
         }
-        
-        console.log(`Setting list content for ${blockType}:`, listContent);
-        listEditor.innerHTML = listContent;
+      } else {
+        console.warn(`❌ contentBlocks not available for list block, retrying...`);
+        // Try again after a short delay
+        setTimeout(() => {
+          populateBlockContent(blockElement, blockType, blockData);
+        }, 500);
       }
       break;
   }
