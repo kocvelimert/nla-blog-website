@@ -1,26 +1,50 @@
-document.addEventListener("DOMContentLoaded", () => {
+/**
+ * Popular Tags Loader
+ * Loads popular tags into footer after components are loaded
+ */
+
+function loadPopularTags() {
     const footerTagContainer = document.getElementById("footer-tags");
-    if (!footerTagContainer) return;
+    if (!footerTagContainer) {
+        console.warn("Footer tags container not found, retrying...");
+        // Retry after a short delay if container not found
+        setTimeout(loadPopularTags, 500);
+        return;
+    }
 
     fetch("http://localhost:3000/posts/popular-tags")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch popular tags");
-        return res.json();
-      })
-      .then((tags) => {
-        if (!tags || tags.length === 0) {
-          footerTagContainer.innerHTML = "<p>No tags found.</p>";
-          return;
-        }
+        .then((res) => {
+            if (!res.ok) throw new Error("Failed to fetch popular tags");
+            return res.json();
+        })
+        .then((tags) => {
+            if (!tags || tags.length === 0) {
+                footerTagContainer.innerHTML = "<p>No tags found.</p>";
+                return;
+            }
 
-        footerTagContainer.innerHTML = tags
-          .map(
-            (tag) => `<a href="tag.html?tag=${encodeURIComponent(tag.name)}">${tag.name}</a>`
-          )
-          .join("");
-      })
-      .catch((err) => {
-        console.error("Error loading footer tags:", err);
-        footerTagContainer.innerHTML = "<p>Error loading tags.</p>";
-      });
-  });
+            footerTagContainer.innerHTML = tags
+                .map(
+                    (tag) => `<a href="tag.html?tag=${encodeURIComponent(tag.name)}">${tag.name}</a>`
+                )
+                .join("");
+        })
+        .catch((err) => {
+            console.error("Error loading footer tags:", err);
+            footerTagContainer.innerHTML = "<p>Error loading tags.</p>";
+        });
+}
+
+// Load popular tags when DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+    // If components are already loaded, load tags immediately
+    if (document.getElementById("footer-tags")) {
+        loadPopularTags();
+    } else {
+        // Otherwise, wait for components to be loaded
+        document.addEventListener("componentsLoaded", loadPopularTags);
+        
+        // Fallback: try loading after a delay
+        setTimeout(loadPopularTags, 1000);
+    }
+});
