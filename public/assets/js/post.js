@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let editDateHtml = ""
       if (post.editDates && post.editDates.length > 0) {
         const lastEditDate = new Date(post.editDates[post.editDates.length - 1]).toLocaleDateString()
-        editDateHtml = `<span class="edit-indicator">(Edited: ${lastEditDate})</span>`
+        editDateHtml = `<span class="edit-indicator">(Güncellenme: ${lastEditDate})</span>`
       }
       const formattedContentCategoryName = post.formatCategory.charAt(0).toUpperCase() + post.formatCategory.slice(1)
       const formattedFormatCategoryName = post.contentCategory.charAt(0).toUpperCase() + post.contentCategory.slice(1)
@@ -128,6 +128,8 @@ document.addEventListener("DOMContentLoaded", () => {
                   <li><a class="tag-base tag-blue" href="category.html?slug=${post.formatCategory}">${formattedContentCategoryName}</a></li>
                   <li><a class="tag-base tag-blue" href="category.html?slug=${post.contentCategory}">${formattedFormatCategoryName}</a></li>
                   <li>
+                    <p class="post-meta-with-edit"><i class="fa fa-user"></i>${post.author}</p>
+                    <p class="post-meta-with-edit"></p>
                     <p class="post-meta-with-edit"><i class="fa fa-clock-o"></i>${createdDate} ${editDateHtml}</p>
                   </li>
                 </ul>
@@ -258,13 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Close post content div
       postHtml += `</div>`
 
-      if (post.author) {
-        postHtml += `
-          <div class="author-section">
-            <p class="author-name">Written by-- ${post.author}</p>
-          </div>
-        `
-      }
+      
   
       // Add tags section
       if (post.tags && post.tags.length > 0) {
