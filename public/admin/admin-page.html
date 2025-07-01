@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Page - Manage Posts</title>
-    <link rel="stylesheet" href="assets/css/admin.css">
+    <link rel="stylesheet" href="../assets/css/admin.css">
 </head>
 <body>
     <!-- Sidebar -->
@@ -24,11 +24,12 @@
         <table class="posts-table">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Format C.</th>
-                    <th>Content C.</th>
-                    <th>Status</th>
+                    <th class="sortable" data-column="id">ID <span class="sort-icon"></span></th>
+                    <th class="sortable" data-column="title">Title <span class="sort-icon"></span></th>
+                    <th class="sortable" data-column="formatCategory">Format C. <span class="sort-icon"></span></th>
+                    <th class="sortable" data-column="contentCategory">Content C. <span class="sort-icon"></span></th>
+                    <th class="sortable" data-column="createdAt">Date <span class="sort-icon"></span></th>
+                    <th class="sortable" data-column="status">Status <span class="sort-icon"></span></th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -39,6 +40,6 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="assets/js/app.js"></script>
+    <script src="../assets/js/app.js"></script>
 </body>
 </html>

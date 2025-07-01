@@ -5,296 +5,22 @@
  * Content creation functionality is in editor.js
  */
 
-// URL for the API (ensure it's correct for your backend setup)
 const API_URL = "http://localhost:3000";
+
+// Global variables for sorting
+let currentPosts = [];
+let currentSortColumn = 'createdAt';
+let currentSortDirection = 'desc'; // Start with newest first
 
 /**
  * Initialize the post management system when the DOM is loaded
  */
 document.addEventListener("DOMContentLoaded", function() {
-  // Load posts if we're on the admin page
-  if (document.getElementById("posts-list")) {
-    fetchPosts();
-  }
-});
-
-
-/**
- * Toggle post status (published/hidden)
- * @param {string} postId - The ID of the post to toggle
- * @param {boolean} newStatus - The new status value
- * @param {HTMLElement} statusText - The status text element to update
- */
-function toggleStatus(postId, newStatus, statusText) {
-  fetch(`${API_URL}/posts/${postId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ status: newStatus }),
-  })
-    .then((response) => response.json())
-    .then((updatedPost) => {
-      console.log(
-        `Post ${updatedPost.id} status is now ${updatedPost.status ? "Published" : "Hidden"}`
-      );
-      // Update the status text
-      statusText.textContent = updatedPost.status ? "Published" : "Hidden";
-    })
-    .catch((error) => {
-      console.error("Error updating status:", error);
-      alert("Failed to update post status.");
-    });
-}
-
-/**
- * Fetch and display all posts
- */
-function fetchPosts() {
-  fetch(API_URL + "/posts")
-    .then((response) => response.json())
-    .then((posts) => {
-      const postsList = document.getElementById("posts-list");
-      if (!postsList) return;
-      
-      postsList.innerHTML = ""; // Clear existing posts
-
-      posts.forEach((post) => {
-        const tr = document.createElement("tr");
-
-        // ID
-        const tdId = document.createElement("td");
-        tdId.textContent = post._id;
-        tr.appendChild(tdId);
-
-        // Title
-        const tdTitle = document.createElement("td");
-        tdTitle.textContent = post.title;
-        tr.appendChild(tdTitle);
-
-        // Format Category
-        const tdFormatC = document.createElement("td");
-        tdFormatC.textContent = post.formatCategory;
-        tr.appendChild(tdFormatC);
-
-        // Content Category
-        const tdContentC = document.createElement("td");
-        tdContentC.textContent = post.contentCategory;
-        tr.appendChild(tdContentC);
-
-        // Status (Published/Hidden) + Checkbox
-        const tdStatus = document.createElement("td");
-
-        // Create checkbox
-        const statusCheckbox = document.createElement("input");
-        statusCheckbox.type = "checkbox";
-        statusCheckbox.checked = post.status;
-        statusCheckbox.classList.add("status-toggle");
-
-        // Create text element for status
-        const statusText = document.createElement("span");
-        statusText.textContent = post.status ? "Published" : "Hidden";
-
-        // Append checkbox and text to the status cell
-        tdStatus.appendChild(statusCheckbox);
-        tdStatus.appendChild(statusText);
-
-        // Update status text when checkbox is toggled
-        statusCheckbox.addEventListener("change", () => {
-          const newStatus = statusCheckbox.checked;
-          // Show confirmation alert
-          const confirmation = confirm(
-            `Are you sure you want to mark this post as ${newStatus ? "Published" : "Hidden"}?`
-          );
-
-          if (confirmation) {
-            toggleStatus(post._id, newStatus, statusText);
-          } else {
-            // If the user cancels, revert the checkbox to its original state
-            statusCheckbox.checked = !newStatus;
-          }
-        });
-
-        tr.appendChild(tdStatus);
-
-        // Actions (Edit and Delete)
-        const tdActions = document.createElement("td");
-
-        // Edit button
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
-        editBtn.classList.add("update-post-btn");
-        editBtn.onclick = () => editPost(post._id);
-        tdActions.appendChild(editBtn);
-
-        // Delete button
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "Delete";
-        deleteBtn.classList.add("delete-btn");
-        deleteBtn.onclick = () => deletePost(post._id);
-        tdActions.appendChild(deleteBtn);
-
-        tr.appendChild(tdActions);
-        postsList.appendChild(tr);
-      });
-    })
-    .catch((error) => {
-      console.error("Error fetching posts:", error);
-    });
-}
-
-/**
- * Toggle post status (published/hidden)
- * @param {string} postId - The ID of the post to toggle
- * @param {boolean} newStatus - The new status value
- * @param {HTMLElement} statusText - The status text element to update
- */
-function toggleStatus(postId, newStatus, statusText) {
-  fetch(`${API_URL}/posts/${postId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ status: newStatus }),
-  })
-    .then((response) => response.json())
-    .then((updatedPost) => {
-      console.log(
-        `Post ${updatedPost.id} status is now ${updatedPost.status ? "Published" : "Hidden"}`
-      );
-      // Update the status text
-      statusText.textContent = updatedPost.status ? "Published" : "Hidden";
-    })
-    .catch((error) => {
-      console.error("Error updating status:", error);
-      alert("Failed to update post status.");
-    });
-}
-
-// Function to fetch and display all posts
-function fetchPosts() {
-  fetch(API_URL + "/posts")
-    .then((response) => response.json())
-    .then((posts) => {
-      const postsList = document.getElementById("posts-list");
-      postsList.innerHTML = ""; // Clear existing posts
-
-      posts.forEach((post) => {
-        const tr = document.createElement("tr");
-
-        // ID
-        const tdId = document.createElement("td");
-        tdId.textContent = post._id;
-        tr.appendChild(tdId);
-
-        // Title
-        const tdTitle = document.createElement("td");
-        tdTitle.textContent = post.title;
-        tr.appendChild(tdTitle);
-
-        // Format Cat
-        const tdFormatC = document.createElement("td");
-        tdFormatC.textContent = post.formatCategory;
-        tr.appendChild(tdFormatC);
-
-        // Content Cat
-        const tdContentC = document.createElement("td");
-        tdContentC.textContent = post.contentCategory;
-        tr.appendChild(tdContentC);
-
-        // Status (Published/Hidden) + Checkbox
-        // Status (Checkbox with text change)
-        const tdStatus = document.createElement("td");
-
-        // Create checkbox
-        const statusCheckbox = document.createElement("input");
-        statusCheckbox.type = "checkbox";
-        statusCheckbox.checked = post.status;
-        statusCheckbox.classList.add("status-toggle");
-
-        // Create text element for status
-        const statusText = document.createElement("span");
-        statusText.textContent = post.status ? "Published" : "Hidden";
-
-        // Append checkbox and text to the status cell
-        tdStatus.appendChild(statusCheckbox);
-        tdStatus.appendChild(statusText);
-
-        // Update status text when checkbox is toggled
-        statusCheckbox.addEventListener("change", () => {
-          const newStatus = statusCheckbox.checked;
-          // Show confirmation alert
-          const confirmation = confirm(
-            `Are you sure you want to mark this post as ${
-              newStatus ? "Published" : "Hidden"
-            }?`
-          );
-
-          if (confirmation) {
-            toggleStatus(post._id, newStatus, statusText);
-          } else {
-            // If the user cancels, revert the checkbox to its original state
-            statusCheckbox.checked = !newStatus;
-          }
-        });
-
-        tr.appendChild(tdStatus);
-
-        // Actions (Edit and Delete)
-        const tdActions = document.createElement("td");
-
-        // Edit button
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
-        editBtn.classList.add("update-post-btn");
-        editBtn.onclick = () => editPost(post._id);
-        tdActions.appendChild(editBtn);
-
-        // Delete button
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "Delete";
-        deleteBtn.classList.add("delete-btn");
-        deleteBtn.onclick = () => deletePost(post._id);
-        tdActions.appendChild(deleteBtn);
-
-        tr.appendChild(tdActions);
-        postsList.appendChild(tr);
-      });
-    })
-    .catch((error) => {
-      console.error("Error fetching posts:", error);
-    });
-}
-
-// Function to edit a post
-function editPost(postId) {
-  window.location.href = `admin-editpost.html?id=${postId}`;
-}
-
-// Function to delete a post
-function deletePost(postId) {
-  if (confirm("Are you sure you want to delete this post?")) {
-    fetch(`${API_URL}/posts/${postId}`, {
-      method: "DELETE",
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        alert("Post deleted successfully!");
-        fetchPosts(); // Re-fetch posts to update the list
-      })
-      .catch((error) => {
-        console.error("Error deleting post:", error);
-        alert("Failed to delete post.");
-      });
-  }
-}
-
-// Call fetchPosts to load posts when the page is ready
-document.addEventListener("DOMContentLoaded", function() {
   console.log('DOM loaded - initializing app.js functionality');
   
   // Initialize post list if we're on the admin page
   if (document.getElementById("posts-list")) {
+    setupSortingHandlers();
     fetchPosts();
   }
   
@@ -346,6 +72,256 @@ document.addEventListener("DOMContentLoaded", function() {
   // Set up form submission if we're on the new post page
   setupFormSubmission();
 });
+
+/**
+ * Toggle post status (published/hidden)
+ * @param {string} postId - The ID of the post to toggle
+ * @param {boolean} newStatus - The new status value
+ * @param {HTMLElement} statusText - The status text element to update
+ */
+function toggleStatus(postId, newStatus, statusText) {
+  fetch(`${API_URL}/posts/${postId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status: newStatus }),
+  })
+    .then((response) => response.json())
+    .then((updatedPost) => {
+      console.log(
+        `Post ${updatedPost.id} status is now ${updatedPost.status ? "Published" : "Hidden"}`
+      );
+      // Update the status text
+      statusText.textContent = updatedPost.status ? "Published" : "Hidden";
+    })
+    .catch((error) => {
+      console.error("Error updating status:", error);
+      alert("Failed to update post status.");
+    });
+}
+
+/**
+ * Fetch and display all posts with sorting functionality
+ */
+function fetchPosts() {
+  fetch(API_URL + "/posts")
+    .then((response) => response.json())
+    .then((posts) => {
+      currentPosts = posts;
+      sortAndDisplayPosts();
+    })
+    .catch((error) => {
+      console.error("Error fetching posts:", error);
+    });
+}
+
+/**
+ * Sort and display posts based on current sort settings
+ */
+function sortAndDisplayPosts() {
+  // Sort the posts
+  const sortedPosts = [...currentPosts].sort((a, b) => {
+    let aValue = getColumnValue(a, currentSortColumn);
+    let bValue = getColumnValue(b, currentSortColumn);
+    
+    // Handle different data types
+    if (currentSortColumn === 'createdAt') {
+      aValue = new Date(aValue);
+      bValue = new Date(bValue);
+    } else if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+    
+    let comparison = 0;
+    if (aValue < bValue) {
+      comparison = -1;
+    } else if (aValue > bValue) {
+      comparison = 1;
+    }
+    
+    return currentSortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  displayPosts(sortedPosts);
+  updateSortIcons();
+}
+
+/**
+ * Get the value for a specific column from a post object
+ */
+function getColumnValue(post, column) {
+  switch(column) {
+    case 'id': return post._id;
+    case 'title': return post.title;
+    case 'formatCategory': return post.formatCategory;
+    case 'contentCategory': return post.contentCategory;
+    case 'createdAt': return post.createdAt;
+    case 'status': return post.status ? 'Published' : 'Hidden';
+    default: return '';
+  }
+}
+
+/**
+ * Display posts in the table
+ */
+function displayPosts(posts) {
+  const postsList = document.getElementById("posts-list");
+  if (!postsList) return;
+  
+  postsList.innerHTML = ""; // Clear existing posts
+
+  posts.forEach((post) => {
+    const tr = document.createElement("tr");
+
+    // ID
+    const tdId = document.createElement("td");
+    tdId.textContent = post._id;
+    tr.appendChild(tdId);
+
+    // Title
+    const tdTitle = document.createElement("td");
+    tdTitle.textContent = post.title;
+    tr.appendChild(tdTitle);
+
+    // Format Category
+    const tdFormatC = document.createElement("td");
+    tdFormatC.textContent = post.formatCategory;
+    tr.appendChild(tdFormatC);
+
+    // Content Category
+    const tdContentC = document.createElement("td");
+    tdContentC.textContent = post.contentCategory;
+    tr.appendChild(tdContentC);
+
+    // Date - Format the createdAt date
+    const tdDate = document.createElement("td");
+    const createdDate = new Date(post.createdAt);
+    tdDate.textContent = createdDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+    tr.appendChild(tdDate);
+
+    // Status (Published/Hidden) + Checkbox
+    const tdStatus = document.createElement("td");
+
+    // Create checkbox
+    const statusCheckbox = document.createElement("input");
+    statusCheckbox.type = "checkbox";
+    statusCheckbox.checked = post.status;
+    statusCheckbox.classList.add("status-toggle");
+
+    // Create text element for status
+    const statusText = document.createElement("span");
+    statusText.textContent = post.status ? "Published" : "Hidden";
+
+    // Append checkbox and text to the status cell
+    tdStatus.appendChild(statusCheckbox);
+    tdStatus.appendChild(statusText);
+
+    // Update status text when checkbox is toggled
+    statusCheckbox.addEventListener("change", () => {
+      const newStatus = statusCheckbox.checked;
+      // Show confirmation alert
+      const confirmation = confirm(
+        `Are you sure you want to mark this post as ${newStatus ? "Published" : "Hidden"}?`
+      );
+
+      if (confirmation) {
+        toggleStatus(post._id, newStatus, statusText);
+      } else {
+        // If the user cancels, revert the checkbox to its original state
+        statusCheckbox.checked = !newStatus;
+      }
+    });
+
+    tr.appendChild(tdStatus);
+
+    // Actions (Edit and Delete)
+    const tdActions = document.createElement("td");
+
+    // Edit button
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.classList.add("update-post-btn");
+    editBtn.onclick = () => editPost(post._id);
+    tdActions.appendChild(editBtn);
+
+    // Delete button
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.classList.add("delete-btn");
+    deleteBtn.onclick = () => deletePost(post._id);
+    tdActions.appendChild(deleteBtn);
+
+    tr.appendChild(tdActions);
+    postsList.appendChild(tr);
+  });
+}
+
+/**
+ * Update sort icons in table headers
+ */
+function updateSortIcons() {
+  // Clear all sort icons
+  document.querySelectorAll('.sort-icon').forEach(icon => {
+    icon.textContent = '';
+  });
+  
+  // Add icon to current sort column
+  const currentHeader = document.querySelector(`[data-column="${currentSortColumn}"] .sort-icon`);
+  if (currentHeader) {
+    currentHeader.textContent = currentSortDirection === 'asc' ? ' ↑' : ' ↓';
+  }
+}
+
+/**
+ * Handle column header clicks for sorting
+ */
+function setupSortingHandlers() {
+  document.querySelectorAll('.sortable').forEach(header => {
+    header.addEventListener('click', () => {
+      const column = header.getAttribute('data-column');
+      
+      if (currentSortColumn === column) {
+        // Toggle direction if same column
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New column, start with ascending (except for date which starts descending)
+        currentSortColumn = column;
+        currentSortDirection = column === 'createdAt' ? 'desc' : 'asc';
+      }
+      
+      sortAndDisplayPosts();
+    });
+  });
+}
+
+// Function to edit a post
+function editPost(postId) {
+  window.location.href = `admin-editpost.html?id=${postId}`;
+}
+
+// Function to delete a post
+function deletePost(postId) {
+  if (confirm("Are you sure you want to delete this post?")) {
+    fetch(`${API_URL}/posts/${postId}`, {
+      method: "DELETE",
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        alert("Post deleted successfully!");
+        fetchPosts(); // Re-fetch posts to update the list
+      })
+      .catch((error) => {
+        console.error("Error deleting post:", error);
+        alert("Failed to delete post.");
+      });
+  }
+}
 
 /**
  * Set up form submission handler
@@ -536,7 +512,7 @@ function createPost(postData) {
     })
     .then((result) => {
       alert("Post created successfully!");
-      window.location.href = "admin-page.html";
+      window.location.href = "admin/admin-page.html";
       return result;
     })
     .catch((error) => {

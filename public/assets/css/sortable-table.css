@@ -1,0 +1,24 @@
+/* ================================
+   SORTABLE TABLE STYLES
+================================== */
+.posts-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.posts-table th.sortable:hover {
+  background-color: #34495e;
+}
+
+.posts-table th.sortable:active {
+  background-color: #1a252f;
+}
+
+.sort-icon {
+  color: #bdc3c7;
+  font-weight: bold;
+  margin-left: 5px;
+  opacity: 0.7;
+} 

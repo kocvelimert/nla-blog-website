@@ -4276,7 +4276,6 @@ object {
 
 .image-grid-item {
   flex: 0 0 calc(50% - 10px);
-  max-width: calc(50% - 10px);
   position: relative;
   background: transparent;
   box-shadow: none;
