@@ -91,6 +91,57 @@
       </div>
     </div>
 
+    <!-- Mobile Sidebar Widgets (Tablet & Mobile only) -->
+    <div class="mobile-sidebar-widgets">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <!-- Quote Widget -->
+                    <div class="widget widget-quote-of-day">
+                        <h6 class="widget-title">Günün Sözü 
+                            <button onclick="window.quoteLoader && window.quoteLoader.forceRefresh()" style="font-size: 10px; padding: 2px 6px; margin-left: 5px; background: var(--main-color); color: white; border: none; border-radius: 3px; cursor: pointer;">🔄</button>
+                        </h6>
+                        <div class="quote-container">
+                            <div class="quote-icon">
+                                <i class="fa fa-quote-left"></i>
+                            </div>
+                            <div class="quote-content">
+                                <blockquote class="quote-text" id="daily-quote-mobile">
+                                    Yükleniyor...
+                                </blockquote>
+                                <div class="quote-attribution">
+                                    <div class="attribution-item">
+                                        <span class="attribution-label">Karakter:</span>
+                                        <span class="character-name" id="quote-character-mobile">...</span>
+                                    </div>
+                                    <div class="attribution-item">
+                                        <span class="attribution-label">Anime:</span>
+                                        <span class="anime-name" id="quote-anime-mobile">...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Newsletter Widget -->
+                    <div class="widget">
+                        <form class="single-newsletter-inner bg-blue text-center">
+                            <h5>Newsletter</h5>
+                            <p>Stay Updated on all that's new add noteworthy</p>
+                            <div class="single-input-inner">
+                                <input type="text" placeholder="Enter Your Name" />
+                            </div>
+                            <div class="single-input-inner">
+                                <input type="text" placeholder="Enter Your Email" />
+                            </div>
+                            <a class="btn btn-white w-100" href="#">Subscribe Now</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="footer-container">
         <!-- Footer will be loaded here dynamically -->
     </div>

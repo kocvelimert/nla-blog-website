@@ -4292,7 +4292,6 @@ object {
 
 .image-grid-item.single {
   flex: 0 0 70%;
-  max-width: 70%;
   margin: 0 auto;
 }
 
@@ -4770,6 +4769,21 @@ object {
   51%, 100% { opacity: 0; }
 }
 
+/* Mobile Sidebar Widgets (Quote + Newsletter) */
+.mobile-sidebar-widgets {
+  display: none;
+  margin: 40px 0;
+  padding: 0 15px;
+}
+
+.mobile-sidebar-widgets .widget {
+  margin-bottom: 30px;
+}
+
+.mobile-sidebar-widgets .widget:last-child {
+  margin-bottom: 0;
+}
+
 /* Responsive design for quote widget */
 @media (max-width: 768px) {
   .quote-container {
@@ -4823,5 +4837,187 @@ object {
   
   .attribution-label {
     color: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Error Page Styles */
+.error-page-wrapper {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  padding: 60px 0;
+}
+
+.error-content {
+  padding: 50px 40px;
+}
+
+.error-number h1 {
+  font-size: 120px;
+  font-weight: 900;
+  color: var(--main-color);
+  margin: 0;
+  line-height: 1;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(45deg, var(--main-color), #6c5ce7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.error-message {
+  margin: 30px 0 40px 0;
+}
+
+.error-message h2 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.error-message p {
+  font-size: 16px;
+  color: #6c757d;
+  line-height: 1.6;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.error-actions {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.error-actions .btn,
+.error-actions .btn.btn-primary {
+  padding: 15px 30px !important;
+  font-weight: 600 !important;
+  border-radius: 30px !important;
+  transition: all 0.3s ease !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  font-size: 16px !important;
+  border: none !important;
+  background: #3498db !important;
+  color: white !important;
+  min-width: 200px !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+}
+
+.error-actions .btn:hover,
+.error-actions .btn.btn-primary:hover {
+  background: #2980b9 !important;
+  color: white !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+  text-decoration: none !important;
+}
+
+.error-actions .btn:focus,
+.error-actions .btn.btn-primary:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3) !important;
+}
+
+.error-actions .btn:active,
+.error-actions .btn.btn-primary:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.error-btn {
+  display: inline-block;
+  padding: 15px 30px;
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 200px;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.error-btn:hover {
+  background: #2980b9;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.error-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+}
+
+.error-btn i {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.error-gif {
+  margin: 30px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.anya-gif {
+  max-width: 300px;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.anya-gif:hover {
+  transform: scale(1.05);
+}
+
+/* Dark mode adjustments */
+.dark-mode .error-message h2 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dark-mode .error-message p {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .error-content {
+    padding: 40px 25px;
+  }
+  
+  .error-number h1 {
+    font-size: 80px;
+  }
+  
+  .error-message h2 {
+    font-size: 24px;
+  }
+  
+  .error-actions .btn {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 12px 25px;
+    font-size: 14px;
+  }
+  
+  .anya-gif {
+    max-width: 250px;
+    max-height: 250px;
   }
 }

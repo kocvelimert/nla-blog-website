@@ -97,6 +97,26 @@ class QuoteLoader {
           data: quote.anime
         });
       }
+
+      // Update mobile widgets as well
+      const mobileQuoteText = document.getElementById('daily-quote-mobile');
+      const mobileCharacterName = document.getElementById('quote-character-mobile');
+      const mobileAnimeName = document.getElementById('quote-anime-mobile');
+
+      if (mobileQuoteText) {
+        console.log('📱 Updating mobile quote text:', quote.content);
+        mobileQuoteText.textContent = quote.content;
+      }
+      
+      if (mobileCharacterName && quote.character && quote.character.name) {
+        console.log('📱 Updating mobile character name:', quote.character.name);
+        mobileCharacterName.textContent = quote.character.name;
+      }
+      
+      if (mobileAnimeName && quote.anime && quote.anime.name) {
+        console.log('📱 Updating mobile anime name:', quote.anime.name);
+        mobileAnimeName.textContent = quote.anime.name;
+      }
       
       console.log('✅ Quote updated successfully!');
     } catch (error) {

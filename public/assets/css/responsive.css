@@ -273,8 +273,18 @@
     display: none;
   }
 
+  /* Show mobile widgets for pages with sidebar */
+  .mobile-sidebar-widgets {
+    display: block !important;
+  }
+
   .cat-page-area .col-lg-3 {
     display: none;
+  }
+
+  /* Show mobile widgets for pages with sidebar */
+  .mobile-sidebar-widgets {
+    display: block !important;
   }
 
   #col-cat-page {

@@ -288,11 +288,11 @@ document.addEventListener("DOMContentLoaded", () => {
       postHtml += `
         <div class="last-posts-section">
           <div class="section-title">
-            <h5>Last Posts</h5>
+            <h5>Son Gönderiler</h5>
           </div>
           <div class="row justify-content-center" id="last-posts-container">
             <div class="col-12 text-center">
-              <p>Loading latest posts...</p>
+              <p>Son Gönderiler Yükleniyor...</p>
             </div>
           </div>
         </div>

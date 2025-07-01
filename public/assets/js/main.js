@@ -254,39 +254,48 @@
      */
     function renderHeroSection(posts) {
         if (!posts || posts.length === 0) {
-            console.warn('No posts available for hero section');
+            $('#hero-banner').html(`
+                <div class="container">
+                    <div class="row">
+                        <div class="col-12 text-center">
+                            <p>Henüz içerik bulunmuyor.</p>
+                        </div>
+                    </div>
+                </div>
+            `);
             return;
         }
 
         const mainPost = posts[0];
         const categoryInfo = getCategoryInfo(mainPost.contentCategory);
-
-        // Update main hero post
-        const heroDetails = $('.banner-details');
-        heroDetails.find('.tag-base').text(categoryInfo.name).attr('class', `tag-base ${categoryInfo.class}`);
-        heroDetails.find('.date').html(`<i class="fa fa-clock-o"></i>${formatDate(mainPost.createdAt)}`);
-        heroDetails.find('h2').text(mainPost.title);
-        heroDetails.find('p').text(extractPreviewText(mainPost, 120));
-        heroDetails.find('.btn').attr('href', `post.html?id=${mainPost._id}`);
-
-        // Update hero image
-        $('.banner-inner .thumb img').attr('src', getThumbnailUrl(mainPost.thumbnail)).attr('alt', mainPost.title);
-
-        // Update the 4 smaller posts below hero
-        const smallPosts = posts.slice(1, 5);
-        const smallPostsContainer = $('.banner-area .container .row').last();
+        const formattedDate = formatDate(mainPost.createdAt);
         
-        smallPosts.forEach((post, index) => {
-            const postElement = smallPostsContainer.find('.col-lg-3').eq(index);
-            if (postElement.length) {
-                const categoryInfo = getCategoryInfo(post.contentCategory);
-                
-                postElement.find('.thumb img').attr('src', getThumbnailUrl(post.thumbnail)).attr('alt', post.title);
-                postElement.find('.tag-base').text(categoryInfo.name).attr('class', `tag-base ${categoryInfo.class}`);
-                postElement.find('.title a').text(post.title).attr('href', `post.html?id=${post._id}`);
-                postElement.find('.date').html(`<i class="fa fa-clock-o"></i>${formatDate(post.createdAt)}`);
-            }
-        });
+        const bannerHTML = `
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="thumb after-left-top">
+                            <img src="${getThumbnailUrl(mainPost.thumbnail)}" alt="${mainPost.title}">
+                        </div>
+                    </div>
+                    <div class="col-lg-6 align-self-center">
+                        <div class="banner-details mt-4 mt-lg-0">
+                            <div class="post-meta-single">
+                                <ul>
+                                    <li><a class="tag-base ${categoryInfo.class}" href="category.html?slug=${mainPost.contentCategory}">${categoryInfo.name}</a></li>
+                                    <li class="date"><i class="fa fa-clock-o"></i>${formattedDate}</li>
+                                </ul>
+                            </div>
+                            <h2>${mainPost.title}</h2>
+                            <p>${extractPreviewText(mainPost, 200)}</p>
+                            <a class="btn btn-blue" href="post.html?id=${mainPost._id}">Devamını Oku</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('#hero-banner').html(bannerHTML);
     }
 
     /**
@@ -427,20 +436,13 @@
      * Initialize dynamic content
      */
     async function initializeDynamicContent() {
+        // Only load on homepage
+        if (!window.location.pathname.endsWith('index.html') && window.location.pathname !== '/') {
+            return;
+        }
+        
         try {
-            console.log('🚀 Loading dynamic content...');
-            
-            // Show loading state
-            $('.banner-details h2').text('İçerik yükleniyor...');
-            $('#post-container').html(`
-                <div class="col-12 text-center">
-                    <div class="spinner">
-                        <div class="dot1"></div>
-                        <div class="dot2"></div>
-                    </div>
-                    <p class="mt-3">İçerikler yükleniyor...</p>
-                </div>
-            `);
+            console.log('🚀 Loading homepage content...');
 
             // Fetch and render content
             const [latestPosts, allPosts] = await Promise.all([
@@ -452,24 +454,119 @@
 
             // Render sections
             renderHeroSection(latestPosts);
-            renderTrendingSection();
-            renderMainPosts(allPosts);
+            renderFeaturedPosts(latestPosts.slice(1, 5)); // Skip first post used in hero
+            renderTrendingTabs();
 
-            console.log('✅ Dynamic content loaded successfully');
+            console.log('✅ Homepage content loaded successfully');
         } catch (error) {
-            console.error('❌ Error initializing dynamic content:', error);
+            console.error('❌ Error loading homepage content:', error);
             
             // Show error state
-            $('#post-container').html(`
+            $('#hero-banner').html(`
+                <div class="container">
+                    <div class="row">
                 <div class="col-12 text-center">
                     <div class="error-message">
                         <h4>İçerik Yükleme Hatası</h4>
                         <p>İçerikler şu anda yüklenemiyor. Lütfen sayfayı yenileyin.</p>
                         <button class="btn btn-base" onclick="location.reload()">Sayfayı Yenile</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `);
         }
+    }
+
+    /**
+     * Render featured posts for banner bottom section
+     */
+    function renderFeaturedPosts(posts) {
+        if (!posts || posts.length === 0) {
+            $('#featured-posts').html('<div class="row"><div class="col-12 text-center"><p>Henüz içerik bulunmuyor.</p></div></div>');
+            return;
+        }
+
+        const postsHTML = posts.map(post => {
+            const categoryInfo = getCategoryInfo(post.formatCategory);
+            const formattedDate = formatDate(post.createdAt);
+            
+            return `
+                <div class="col-lg-3 col-sm-6">
+                    <div class="single-post-wrap style-white">
+                        <div class="thumb">
+                            <img src="${getThumbnailUrl(post.thumbnail)}" alt="${post.title}">
+                            <a class="tag-base ${categoryInfo.class}" href="category.html?slug=${post.formatCategory}">${post.formatCategory.toUpperCase()}</a>
+                        </div>
+                        <div class="details">
+                            <h6 class="title"><a href="post.html?id=${post._id}">${post.title}</a></h6>
+                            <div class="post-meta-single mt-3">
+                                <ul>
+                                    <li><i class="fa fa-clock-o"></i>${formattedDate}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        $('#featured-posts').html(`<div class="row">${postsHTML}</div>`);
+    }
+
+    /**
+     * Render trending tabs with category content
+     */
+    function renderTrendingTabs() {
+        const categories = ['anime', 'manga', 'manhwa', 'haber', 'liste'];
+        
+        categories.forEach(category => {
+            fetchPostsByCategory(category, 4)
+                .then(posts => {
+                    if (posts && posts.length > 0) {
+                        renderCategoryPosts(category, posts);
+                    } else {
+                        $(`#${category}-posts`).html('<div class="col-12 text-center"><p>Bu kategoride henüz içerik bulunmuyor.</p></div>');
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error loading ${category} posts:`, error);
+                    $(`#${category}-posts`).html('<div class="col-12 text-center"><p>İçerik yüklenirken hata oluştu.</p></div>');
+                });
+        });
+    }
+
+    /**
+     * Render posts for a specific category
+     */
+    function renderCategoryPosts(category, posts) {
+        const postsHTML = posts.map(post => {
+            const categoryInfo = getCategoryInfo(post.contentCategory);
+            const formattedDate = formatDate(post.createdAt);
+            
+            return `
+                <div class="col-lg-3 col-sm-6">
+                    <div class="single-post-wrap">
+                        <div class="thumb">
+                            <img src="${getThumbnailUrl(post.thumbnail)}" alt="${post.title}">
+                            <a class="tag-base ${categoryInfo.class}" href="category.html?slug=${post.contentCategory}">${categoryInfo.name}</a>
+                        </div>
+                        <div class="details">
+                            <div class="post-meta-single mb-3">
+                                <ul>
+                                    <li><i class="fa fa-clock-o"></i>${formattedDate}</li>
+                                    <li><i class="fa fa-user"></i>${post.author || 'No Life Anime'}</li>
+                                </ul>
+                            </div>
+                            <h6><a href="post.html?id=${post._id}">${post.title}</a></h6>
+                            <p>${extractPreviewText(post, 100)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        $(`#${category}-posts`).html(postsHTML);
     }
 
     /**

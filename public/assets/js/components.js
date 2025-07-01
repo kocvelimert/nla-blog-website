@@ -183,6 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             break;
             
+        case 'error.html':
+            window.componentLoader.initializePage({
+                loadNavbar: true,
+                loadFooter: true,
+                navbarTarget: '#navbar-container',
+                footerTarget: '#footer-container'
+            });
+            break;
+            
         default:
             // Homepage and other pages only load footer if needed
             if (document.querySelector('#footer-container')) {
