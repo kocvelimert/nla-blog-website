@@ -14,10 +14,12 @@ const uploadAny = multer({
 
 router.get("/", postController.getAllPosts)
 router.get('/popular-tags', postController.getPopularTags);
+router.get('/search', postController.searchPosts);
 router.get('/latest', postController.getLatestPosts);
-router.get("/:id", postController.getPostById)
 router.get("/category/:category", postController.getPostsByCategory)
 router.get("/tag/:tag", postController.getPostsByTag)
+// /:id route must be LAST because it matches any string
+router.get("/:id", postController.getPostById)
 
 // Use uploadAny for the create post route to accept any field names
 router.post(

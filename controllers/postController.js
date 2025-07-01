@@ -172,49 +172,35 @@ exports.getPopularTags = asyncHandler(async (req, res) => {
   res.json(popularTags);
 });
 
-// GET: Popular tags (top 10 most used)
-exports.getPopularTags = async (req, res) => {
-  try {
-    // Aggregate to find the most used tags
-    const popularTags = await Post.aggregate([
-      // Only consider published posts
-      { $match: { status: true } },
-      
-      // Unwind the tags array to create a document for each tag
-      { $unwind: "$tags" },
-      
-      // Group by tag and count occurrences
-      { 
-        $group: { 
-          _id: "$tags", 
-          count: { $sum: 1 } 
-        } 
-      },
-      
-      // Sort by count in descending order
-      { $sort: { count: -1 } },
-      
-      // Limit to top 10
-      { $limit: 10 },
-      
-      // Project to rename _id to name for cleaner output
-      { 
-        $project: { 
-          _id: 0, 
-          name: "$_id", 
-          count: 1 
-        } 
-      }
-    ]);
-
-    res.json(popularTags);
-  } catch (error) {
-    console.error("Error fetching popular tags:", error);
-    res.status(500).json({ error: "Error fetching popular tags" });
+// GET: Search posts by title
+exports.searchPosts = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  
+  if (!q || q.trim().length === 0) {
+    return res.json([]);
   }
-};
 
+  const searchTerm = q.trim();
+  console.log(`🔍 Searching posts for: "${searchTerm}"`);
 
+  // Search only in titles using regex (case-insensitive)
+  const posts = await Post.find({
+    title: { $regex: searchTerm, $options: 'i' },
+    status: true // Only search published posts
+  })
+    .sort({ createdAt: -1 }) // Sort by newest first
+    .limit(50) // Limit results to prevent overload
+    .lean();
+
+  console.log(`Found ${posts.length} posts matching "${searchTerm}"`);
+
+  // Process posts with media URLs using the mediaService
+  // We only need thumbnails for search results, so set processContent to false
+  const processedPosts = await mediaService.processPostMedia(posts, false);
+
+  console.log(`✅ Successfully processed ${processedPosts.length} search results`);
+  res.json(processedPosts);
+});
 
 // GET: Tekil
 exports.getPostById = asyncHandler(async (req, res) => {

@@ -4,8 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Post Details | No Life Anime</title>
+    <title>Search Results | No Life Anime</title>
 
     <!-- favicon -->
     <link
@@ -41,20 +40,49 @@
     </div>
     <!-- navbar end -->
 
-    <div class="blog-page-area pd-bottom-80">
+    <!--page-title area-->
+    <section class="page-title-area">
       <div class="container">
-        <div class="row" id="post-page-mainarea">
-          <div class="col-lg-9">
-            <div class="blog-details-page-inner" id="post-content-container">
-              <div class="loading-spinner">
-                <div class="spinner">
-                  <div class="dot1"></div>
-                  <div class="dot2"></div>
-                </div>
-              </div>
+        <div class="row">
+          <div class="col-lg-12">
+            <div class="breadcrumb-inner">
+              <h5 class="page-title" id="search-title">Arama Sonuçları</h5>
+              <ul class="page-list">
+                <li><a href="index.html">Anasayfa</a></li>
+                <li>Arama</li>
+                <li id="breadcrumb-search-term">Loading...</li>
+              </ul>
             </div>
           </div>
-          <div class="col-lg-3">
+        </div>
+      </div>
+    </section>
+    <!--page-title area end-->
+
+
+
+    <div class="cat-page-area pd-bottom-80">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-9" id="col-cat-page">
+            <!-- Search Results Info -->
+            <div class="search-info-area mb-4" id="search-info">
+              <p class="search-results-count">Arama yapılıyor...</p>
+            </div>
+            
+            <div class="row" id="posts-container">
+              <div class="col-12 text-center">
+                <p>Arama sonuçları yükleniyor...</p>
+              </div>
+            </div>
+            <div class="add-area mb-4" id="cat-in-col-add">
+              <a href="#"><img src="assets/img/add/2.png" alt="img" /></a>
+            </div>
+            <nav class="mt-4 text-center pagination-container">
+              <ul class="pagination"></ul>
+            </nav>
+          </div>
+          <div class="col-lg-3 pd-top-50">
             <div id="sidebar-container">
               <!-- Sidebar will be loaded here dynamically -->
             </div>
@@ -72,17 +100,14 @@
       <span class="back-top"><i class="fa fa-angle-up"></i></span>
     </div>
     <!-- back to top area end -->
-
-    <!-- all plugins here -->
+    
     <script src="assets/js/vendor.js"></script>
-    <!-- components loader -->
     <script src="assets/js/components.js"></script>
     <!-- search functionality -->
     <script src="assets/js/search.js"></script>
-    <!-- main js  -->
     <script src="assets/js/main.js"></script>
-    <!-- post details js -->
-    <script src="assets/js/post.js"></script>
+    <!-- search page js -->
+    <script src="assets/js/search-page.js"></script>
     <script src="assets/js/popular-tags.js"></script>
   </body>
 </html>

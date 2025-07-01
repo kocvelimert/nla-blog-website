@@ -172,6 +172,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             break;
             
+        case 'search.html':
+            window.componentLoader.initializePage({
+                loadNavbar: true,
+                loadSidebar: true,
+                loadFooter: true,
+                navbarTarget: '#navbar-container',
+                sidebarTarget: '#sidebar-container',
+                footerTarget: '#footer-container'
+            });
+            break;
+            
         default:
             // Homepage and other pages only load footer if needed
             if (document.querySelector('#footer-container')) {
