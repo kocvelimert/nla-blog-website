@@ -4398,3 +4398,430 @@ object {
 .cat-page-area {
   padding-top: 25px;
 }
+
+/* Twitter Follow Widget Styles */
+.widget-twitter-follow {
+  margin-bottom: 30px;
+}
+
+.twitter-follow-container {
+  background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.twitter-follow-container:before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  transform: scale(0);
+  transition: transform 0.6s ease;
+}
+
+.twitter-follow-container:hover:before {
+  transform: scale(1);
+}
+
+.twitter-follow-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.btn-twitter-follow {
+  display: block;
+  text-decoration: none;
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+
+.btn-twitter-follow:hover {
+  color: white;
+  text-decoration: none;
+}
+
+.twitter-follow-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.twitter-icon-wrapper {
+  background: rgba(255, 255, 255, 0.2);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.twitter-icon-wrapper i {
+  font-size: 24px;
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+.twitter-icon-wrapper .x-logo {
+  font-size: 28px;
+  color: white;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.twitter-follow-container:hover .twitter-icon-wrapper {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(360deg);
+}
+
+.twitter-follow-container:hover .twitter-icon-wrapper i {
+  transform: scale(1.1);
+}
+
+.twitter-follow-container:hover .twitter-icon-wrapper .x-logo {
+  transform: scale(1.1);
+}
+
+.twitter-follow-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.follow-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.follow-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .twitter-follow-container {
+    padding: 15px;
+  }
+  
+  .twitter-follow-content {
+    gap: 12px;
+  }
+  
+  .twitter-icon-wrapper {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .twitter-icon-wrapper i {
+    font-size: 20px;
+  }
+  
+  .twitter-icon-wrapper .x-logo {
+    font-size: 24px;
+  }
+  
+  .follow-text {
+    font-size: 16px;
+  }
+  
+  .follow-subtitle {
+    font-size: 12px;
+  }
+}
+
+/* Footer Twitter Follow Button - Compact Version */
+.footer-twitter-follow {
+  display: inline-block;
+}
+
+.btn-footer-twitter {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 25px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-footer-twitter:hover {
+  color: white;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.footer-twitter-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-x-logo {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  transition: transform 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.footer-follow-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+}
+
+.btn-footer-twitter:hover .footer-x-logo {
+  transform: scale(1.1) rotate(15deg);
+}
+
+/* Mobile responsive for footer button */
+@media (max-width: 768px) {
+  .btn-footer-twitter {
+    padding: 6px 12px;
+  }
+  
+  .footer-x-logo {
+    font-size: 14px;
+  }
+  
+  .footer-follow-text {
+    font-size: 12px;
+  }
+}
+
+/* Quote of the Day Widget Styles */
+.widget-quote-of-day {
+  margin-bottom: 30px;
+}
+
+.widget-quote-of-day .widget-title {
+  margin-bottom: 15px;
+  color: var(--heading-color);
+  font-weight: 600;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.quote-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 15px;
+  padding: 25px 20px;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.quote-container:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--main-color) 0%, #6c5ce7 100%);
+  border-radius: 15px 15px 0 0;
+}
+
+.quote-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.quote-icon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  opacity: 0.1;
+  font-size: 24px;
+  color: var(--main-color);
+  transform: rotate(180deg);
+}
+
+.quote-content {
+  position: relative;
+  z-index: 2;
+}
+
+.quote-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--paragraph-color);
+  margin: 0 0 15px 0;
+  font-style: italic;
+  border: none;
+  padding: 0;
+  position: relative;
+  font-weight: 400;
+}
+
+.quote-text:before {
+  content: '"';
+  font-size: 24px;
+  color: var(--main-color);
+  position: absolute;
+  left: -15px;
+  top: -5px;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+.quote-text:after {
+  content: '"';
+  font-size: 24px;
+  color: var(--main-color);
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+.quote-attribution {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.attribution-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.attribution-item:last-child {
+  margin-bottom: 0;
+}
+
+.attribution-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.character-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading-color);
+}
+
+.anime-name {
+  font-size: 13px;
+  color: var(--main-color);
+  font-weight: 500;
+}
+
+/* Loading state for quote */
+.quote-container.loading .quote-content {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.quote-container.loading .quote-text::after {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 1em;
+  background-color: var(--main-color);
+  margin-left: 3px;
+  animation: blink 1s infinite;
+}
+
+.quote-container.loading .quote-text:after {
+  content: none !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Responsive design for quote widget */
+@media (max-width: 768px) {
+  .quote-container {
+    padding: 20px 15px;
+  }
+  
+  .quote-text {
+    font-size: 14px;
+  }
+  
+  .quote-text:before,
+  .quote-text:after {
+    font-size: 20px;
+  }
+  
+  .quote-text:before {
+    left: -12px;
+  }
+  
+  .quote-text:after {
+    right: -8px;
+  }
+  
+  .character-name {
+    font-size: 13px;
+  }
+  
+  .anime-name {
+    font-size: 11px;
+  }
+}
+
+/* Dark mode support for quote widget */
+@media (prefers-color-scheme: dark) {
+  .quote-container {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .quote-text {
+    color: #e2e8f0;
+  }
+  
+  .character-name {
+    color: #f7fafc;
+  }
+  
+  .quote-attribution {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .attribution-label {
+    color: rgba(255, 255, 255, 0.9);
+  }
+}
