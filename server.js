@@ -4,6 +4,7 @@ const cors = require("cors")
 const path = require("path")
 const postRoutes = require("./routes/postRoutes")
 const quoteRoutes = require("./routes/quoteRoutes")
+const newsletterRoutes = require("./routes/newsletterRoutes")
 const connectDB = require("./config/db")
 
 require("dotenv").config() // Add parentheses here
@@ -24,6 +25,7 @@ app.use(bodyParser.urlencoded({ extended: true, limit: "100mb" }))
 // Register routes
 app.use("/posts", postRoutes)
 app.use("/quotes", quoteRoutes)
+app.use("/api/newsletter", newsletterRoutes)
 
 // Serve static files from the public folder
 app.use(express.static(path.join(__dirname, 'public')));

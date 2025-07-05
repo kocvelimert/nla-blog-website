@@ -217,6 +217,12 @@
     display: none;
   }
 
+  /* Hide ad widget and Twitter follow widget on tablet screens */
+  .widget-add,
+  .widget-twitter-follow {
+    display: none;
+  }
+
   .category-sitebar{
 	padding: 0 100px;
 	.single-newsletter-inner {

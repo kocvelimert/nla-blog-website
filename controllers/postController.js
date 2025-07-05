@@ -10,6 +10,7 @@ const cloudinaryService = require("../services/cloudinaryService")
 const contentService = require("../services/contentService")
 const imageService = require("../services/imageService")
 const mediaService = require("../services/mediaService")
+const newsletterService = require("../services/newsletterService")
 
 // Import error handling utilities
 const { asyncHandler, createError } = require("../utils/errorHandler")
@@ -310,6 +311,51 @@ exports.createPost = asyncHandler(async (req, res) => {
   const saved = await post.save();
   
   console.log(`✅ Post saved successfully with ID: ${saved._id}`);
+  
+  // Send newsletter campaign if post is published
+  if (saved.status) {
+    try {
+      console.log("📧 Sending newsletter campaign for published post");
+      
+      // Get the full thumbnail URL for the email
+      const thumbnailUrl = await mediaService.getCloudinaryUrl(saved.thumbnail);
+      
+      // Extract excerpt from content (first text block or first 200 characters)
+      let excerpt = "";
+      if (saved.content && saved.content.length > 0) {
+        const firstTextBlock = saved.content.find(block => block.type === "text" || block.type === "paragraph");
+        if (firstTextBlock && firstTextBlock.text) {
+          excerpt = firstTextBlock.text.substring(0, 200) + "...";
+        }
+      }
+      
+      // Prepare post data for newsletter
+      const newsletterPostData = {
+        title: saved.title,
+        slug: saved.slug,
+        excerpt: excerpt,
+        thumbnail: thumbnailUrl,
+        publishDate: saved.createdAt
+      };
+      
+      // Send newsletter campaign (don't await to avoid blocking the response)
+      newsletterService.createPostNotificationCampaign(newsletterPostData)
+        .then(result => {
+          if (result.success) {
+            console.log("✅ Newsletter campaign sent successfully");
+          } else {
+            console.warn("⚠️ Newsletter campaign failed:", result.message);
+          }
+        })
+        .catch(error => {
+          console.error("❌ Newsletter campaign error:", error);
+        });
+      
+    } catch (error) {
+      console.error("❌ Newsletter campaign preparation error:", error);
+    }
+  }
+  
   res.status(201).json(saved);
 });
 

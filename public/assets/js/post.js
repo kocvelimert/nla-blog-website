@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="post-meta-single mb-2" id="post-meta-4mob">
                 
                 <div id="pmed-4mob">
-                  <p class="post-meta-with-edit"><i class="fa fa-user"></i>${post.author}</p>
+                  <p class="post-meta-with-edit"><i class="fa fa-user"></i>${post.author} </p>
                   <p class="post-meta-with-edit"><i class="fa fa-clock-o"></i>${createdDate} ${editDateHtml}</p>
                   <ul>
                   <li><a class="tag-base tag-blue" href="category.html?slug=${post.formatCategory}">${formattedContentCategoryName}</a></li>
