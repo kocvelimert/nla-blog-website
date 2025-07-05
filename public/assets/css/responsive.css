@@ -516,7 +516,7 @@
   }
   
   #title-4mob {
-    font-size: 20px;
+    font-size: 24px;
   }
 
   #post-meta-4pc {
@@ -524,13 +524,15 @@
   }
 
   #post-meta-4mob {
-    margin-top: 20px;
-
+    margin-top: 0px;
+    ul{
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
   }
 
   .blog-details-page-inner .single-blog-inner p {
     margin-bottom: 0;
-    margin-top: 10px;
   }
 
   .tag-base {
