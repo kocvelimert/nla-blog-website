@@ -5020,3 +5020,158 @@ object {
     max-height: 250px;
   }
 }
+
+/* Recommendations Section */
+.recommendations-area {
+  background-color: #f8f9fa;
+}
+
+.recommendations-content {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
+
+.recommendations-content .section-title {
+  border-bottom: 3px solid var(--main-color);
+  padding-bottom: 10px;
+  margin-bottom: 25px;
+}
+
+.recommendations-content .section-title .title {
+  color: var(--heading-color);
+  font-weight: 600;
+  font-size: 22px;
+  margin-bottom: 0;
+}
+
+.recommendation-category {
+  margin-bottom: 25px;
+}
+
+.recommendation-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--heading-color);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.category-title i {
+  margin-right: 8px;
+  color: var(--main-color);
+  font-size: 18px;
+}
+
+.recommendation-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendation-links li {
+  margin-bottom: 8px;
+}
+
+.recommendation-links li:last-child {
+  margin-bottom: 0;
+}
+
+.recommendation-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--paragraph-color);
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.recommendation-link:hover {
+  background: var(--main-color);
+  color: white;
+  border-left-color: var(--main-color);
+  transform: translateX(5px);
+}
+
+.recommendation-link .link-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.recommendation-link .link-url {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.recommendation-link:hover .link-url {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.newsletter-widget {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  margin-left: 30px;
+}
+
+.newsletter-widget .single-newsletter-inner {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+  .recommendations-content {
+    margin-bottom: 30px;
+  }
+  
+  .recommendation-link {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .recommendation-link .link-url {
+    margin-top: 4px;
+  }
+  
+  .newsletter-widget {
+    align-items: flex-start;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .recommendations-content {
+    padding: 20px;
+  }
+  
+  .category-title {
+    font-size: 14px;
+  }
+  
+  .recommendation-link {
+    padding: 8px 12px;
+  }
+  
+  .recommendation-link .link-name {
+    font-size: 13px;
+  }
+  
+  .recommendation-link .link-url {
+    font-size: 11px;
+  }
+}

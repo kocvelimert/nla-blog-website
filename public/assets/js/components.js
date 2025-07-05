@@ -87,6 +87,39 @@ class ComponentLoader {
     }
 
     /**
+     * Load newsletter widget component
+     */
+    async loadNewsletter(targetSelector = '.newsletter-container', insertMethod = 'innerHTML') {
+        return await this.insertComponent('newsletter-widget', targetSelector, insertMethod);
+    }
+
+    /**
+     * Load all newsletter widgets on a page
+     */
+    async loadAllNewsletters() {
+        const newsletterContainers = document.querySelectorAll('.newsletter-container');
+        
+        if (newsletterContainers.length === 0) {
+            console.log('📮 No newsletter containers found on this page');
+            return;
+        }
+        
+        const promises = [];
+        
+        newsletterContainers.forEach((container, index) => {
+            const targetSelector = container.id ? `#${container.id}` : `.newsletter-container:nth-child(${index + 1})`;
+            promises.push(this.loadNewsletter(targetSelector));
+        });
+        
+        try {
+            await Promise.all(promises);
+            console.log(`✅ ${promises.length} newsletter widget(s) loaded successfully`);
+        } catch (error) {
+            console.error('❌ Error loading newsletter widgets:', error);
+        }
+    }
+
+    /**
      * Initialize components for a page
      */
     async initializePage(config = {}) {
@@ -132,6 +165,11 @@ class ComponentLoader {
 
 // Create global instance
 window.componentLoader = new ComponentLoader();
+
+// Auto-load newsletter widgets when components are loaded
+document.addEventListener('componentsLoaded', () => {
+    window.componentLoader.loadAllNewsletters();
+});
 
 // Auto-initialize based on page
 document.addEventListener('DOMContentLoaded', () => {
@@ -199,6 +237,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadFooter: true,
                     footerTarget: '#footer-container'
                 });
+            }
+            
+            // For homepage, also load newsletter widgets immediately
+            if (currentPage === 'index.html' || currentPage === '') {
+                // Wait a bit for DOM to be ready, then load newsletters
+                setTimeout(() => {
+                    window.componentLoader.loadAllNewsletters();
+                }, 100);
             }
     }
 }); 
