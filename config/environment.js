@@ -22,6 +22,11 @@ const config = {
         SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL
     },
     
+    // Newsletter configuration
+    NEWSLETTER: {
+        LOGO_URL: process.env.NEWSLETTER_LOGO_URL || 'https://res.cloudinary.com/dpwktwbzk/image/upload/v1751794543/245b11d0-bd60-45c0-92b0-0a808a7dbab2.png'
+    },
+    
     // Database configuration
     MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/nla-local-server',
     

@@ -369,7 +369,10 @@ exports.createPost = asyncHandler(async (req, res) => {
         slug: saved.slug,
         excerpt: excerpt,
         thumbnail: thumbnailUrl,
-        publishDate: saved.createdAt
+        publishDate: saved.createdAt,
+        formatCategory: saved.formatCategory,
+        contentCategory: saved.contentCategory,
+        author: saved.author
       };
       
       // Send newsletter campaign (don't await to avoid blocking the response)
@@ -491,84 +494,6 @@ exports.updatePost = asyncHandler(async (req, res) => {
 
   const updatedPost = await post.save();
   
-  // Send newsletter campaign if post was just published (changed from draft to published)
-  if (!wasPublished && updatedPost.status) {
-    try {
-      console.log("📧 Sending newsletter campaign for newly published post");
-      
-      // Get the full thumbnail URL for the email using direct cloudinary method
-      let thumbnailUrl = null;
-      if (updatedPost.thumbnail) {
-        try {
-          thumbnailUrl = cloudinary.url(updatedPost.thumbnail, {
-            resource_type: "image",
-            width: 600,
-            height: 400,
-            crop: "fill",
-            quality: "auto:best",
-            fetch_format: "auto",
-            dpr: "auto",
-            flags: "progressive"
-          });
-          console.log("📧 Generated thumbnail URL:", thumbnailUrl);
-        } catch (error) {
-          console.warn("⚠️ Error generating thumbnail URL:", error);
-          thumbnailUrl = updatedPost.thumbnail; // Use original if transformation fails
-        }
-      }
-      
-      // Extract excerpt from content (first meaningful text block)
-      let excerpt = "";
-      if (updatedPost.content && updatedPost.content.length > 0) {
-        // Look for the first text-containing block
-        const textBlock = updatedPost.content.find(block => {
-          const textTypes = ['paragraph', 'heading', 'blockquote', 'bulletList', 'orderedList'];
-          return textTypes.includes(block.type) && (block.text || block.content);
-        });
-        
-        if (textBlock) {
-          const textContent = textBlock.text || textBlock.content || "";
-          // Remove HTML tags and extract plain text
-          const plainText = textContent.replace(/<[^>]*>/g, '').trim();
-          if (plainText.length > 0) {
-            excerpt = plainText.substring(0, 200);
-            if (plainText.length > 200) excerpt += "...";
-          }
-        }
-      }
-      
-      // Fallback excerpt if none found
-      if (!excerpt) {
-        excerpt = `${updatedPost.title} hakkında yeni bir yazı yayınladık. Detaylar için yazıyı okuyun!`;
-      }
-      
-      // Prepare post data for newsletter
-      const newsletterPostData = {
-        title: updatedPost.title,
-        slug: updatedPost.slug,
-        excerpt: excerpt,
-        thumbnail: thumbnailUrl,
-        publishDate: updatedPost.createdAt
-      };
-      
-      // Send newsletter campaign (don't await to avoid blocking the response)
-      newsletterService.createPostNotificationCampaign(newsletterPostData)
-        .then(result => {
-          if (result.success) {
-            console.log("✅ Newsletter campaign sent successfully");
-          } else {
-            console.warn("⚠️ Newsletter campaign failed:", result.message);
-          }
-        })
-        .catch(error => {
-          console.error("❌ Newsletter campaign error:", error);
-        });
-      
-    } catch (error) {
-      console.error("❌ Newsletter campaign preparation error:", error);
-    }
-  }
-  
   res.status(200).json({ message: "Post updated successfully", post: updatedPost });
 });
 
@@ -643,28 +568,28 @@ exports.deletePost = asyncHandler(async (req, res) => {
               console.warn(`⚠️ Content image deletion returned unexpected result:`, result);
               failedMediaCount++;
             }
-                      } else {
-              console.warn(`⚠️ Image block has no valid public ID:`, block);
-            }
-          } catch (error) {
-            console.error("Error deleting content image:", error);
-            failedMediaCount++;
+          } else {
+            console.warn(`⚠️ Image block has no valid public ID:`, block);
           }
+        } catch (error) {
+          console.error("Error deleting content image:", error);
+          failedMediaCount++;
         }
       }
     }
+  }
 
-    // Delete post from database
-    const deleteResult = await Post.findByIdAndDelete(id);
-    if (!deleteResult) {
-      console.warn(`⚠️ Post was not found in database during deletion: ${id}`);
-    }
-    
-    console.log(`✅ Post deleted successfully. Media deleted: ${deletedMediaCount}, Failed: ${failedMediaCount}`);
+  // Delete post from database
+  const deleteResult = await Post.findByIdAndDelete(id);
+  if (!deleteResult) {
+    console.warn(`⚠️ Post was not found in database during deletion: ${id}`);
+  }
+  
+  console.log(`✅ Post deleted successfully. Media deleted: ${deletedMediaCount}, Failed: ${failedMediaCount}`);
 
-    res.json({
-      message: `Post deleted successfully. ${deletedMediaCount} media files removed from Cloudinary.`,
-      deletedMediaCount,
-      failedMediaCount
-    });
+  res.json({
+    message: `Post deleted successfully. ${deletedMediaCount} media files removed from Cloudinary.`,
+    deletedMediaCount,
+    failedMediaCount
   });
+});

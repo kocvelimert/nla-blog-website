@@ -1,15 +1,15 @@
 {
-  "lastUpdated": "2025-07-05T09:02:08.866Z",
+  "lastUpdated": "2025-07-06T09:30:40.794Z",
   "quote": {
-    "content": "Work at it. All I can do is work hard! That’s the story of my life!",
+    "content": "No matter what you do, it's all futile in this world.",
     "anime": {
-      "id": 1002,
-      "name": "Demon Slayer: Kimetsu no Yaiba",
-      "altName": "Kimetsu no Yaiba"
+      "id": 479,
+      "name": "Alice in Borderland",
+      "altName": "Imawa no Kuni no Alice"
     },
     "character": {
-      "id": 2528,
-      "name": "Tanjiro Kamado"
+      "id": 998,
+      "name": "Shuntarou Chishiya"
     }
   }
 }

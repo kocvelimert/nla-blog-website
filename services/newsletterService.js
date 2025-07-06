@@ -84,7 +84,7 @@ class NewsletterService {
      */
     async createPostNotificationCampaign(postData) {
         try {
-            const { title, slug, excerpt, thumbnail, publishDate, category, formatCategory, contentCategory } = postData;
+            const { title, slug, excerpt, thumbnail, publishDate, category, formatCategory, contentCategory, author } = postData;
             
             console.log('📧 Creating newsletter campaign for:', {
                 title,
@@ -92,6 +92,7 @@ class NewsletterService {
                 category,
                 formatCategory,
                 contentCategory,
+                author,
                 hasExcerpt: !!excerpt,
                 hasThumbnail: !!thumbnail,
                 publishDate: publishDate ? new Date(publishDate).toISOString() : null
@@ -105,9 +106,14 @@ class NewsletterService {
             // Create campaign
             const createCampaign = new SibApiV3Sdk.CreateEmailCampaign();
             
-            // Format subject line: Yeni [formatCategory] - [contentCategory] İçeriği: [title]
+            // Helper function to capitalize first letter only
+            const capitalizeFirst = (str) => {
+                return str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
+            };
+            
+            // Format subject line: Yeni [Formatcategory] - [Contentcategory] İçeriği: [title]
             const subjectLine = formatCategory && contentCategory ? 
-                `Yeni ${formatCategory}-${contentCategory} İçeriği: ${title}` : 
+                `Yeni ${capitalizeFirst(formatCategory)} - ${capitalizeFirst(contentCategory)} İçeriği: ${title}` : 
                 `Yeni Blog Yazısı: ${title}`;
             
             createCampaign.name = `Blog Post: ${title}`;
@@ -190,10 +196,12 @@ class NewsletterService {
      * @returns {string} HTML email content
      */
     generatePostEmailTemplate(postData) {
-        const { title, slug, excerpt, thumbnail, publishDate, category, formatCategory, contentCategory } = postData;
+        const { title, slug, excerpt, thumbnail, publishDate, category, formatCategory, contentCategory, author } = postData;
         const baseUrl = this.baseUrl || 'http://localhost:3000';
         const postUrl = `${baseUrl}/post.html?slug=${slug}`;
-        const logoUrl = `${baseUrl}/assets/img/nla-logo-tp.png`;
+        
+        // Use Cloudinary transformations for optimized logo
+        const logoUrl = 'https://res.cloudinary.com/dpwktwbzk/image/upload/w_300,h_60,c_fit,q_auto,f_auto/v1751794543/245b11d0-bd60-45c0-92b0-0a808a7dbab2.png';
         
         // Format publish date
         const formattedDate = publishDate ? 
@@ -216,10 +224,11 @@ class NewsletterService {
         
         return `
         <!DOCTYPE html>
-        <html>
+        <html lang="tr">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
             <title>${title}</title>
             <style>
                 /* Website-matching styles */
@@ -230,67 +239,109 @@ class NewsletterService {
                     line-height: 1.7;
                     color: #151516;
                     margin: 0;
-                    padding: 20px;
-                    background-color: #f8f9fa;
+                    padding: 30px 15px;
+                    background-color: #f0f2f5;
                     font-size: 18px;
                 }
                 
-                .email-container {
-                    max-width: 800px;
+                /* Card container */
+                .email-card {
+                    max-width: 650px;
                     margin: 0 auto;
                     background: white;
-                    padding: 40px;
-                    border-radius: 0;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    border-radius: 12px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                    overflow: hidden;
+                    border: 1px solid #e0e0e0;
                 }
                 
-                /* Personal message header */
-                .personal-message {
+                /* Blue header */
+                .email-header {
+                    background: linear-gradient(135deg, #097bed 0%, #0056b3 100%);
+                    color: white;
+                    padding: 25px 30px;
                     text-align: center;
-                    margin-bottom: 30px;
-                    padding: 20px;
-                    background: #f8f9fa;
-                    border-radius: 8px;
-                    border-left: 4px solid #097bed;
+                    position: relative;
+                }
+                
+                .email-header::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="30" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="20" cy="70" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+                    opacity: 0.3;
                 }
                 
                 .logo-container {
-                    margin-bottom: 15px;
+                    position: relative;
+                    z-index: 1;
+                    margin-bottom: 10px;
                 }
                 
                 .logo-container img {
-                    height: 40px;
+                    max-width: 300px;
                     width: auto;
+                    height: auto;
+                    max-height: 60px;
+                    object-fit: contain;
+                    display: block;
+                    margin: 0 auto;
                 }
                 
-                .personal-text {
+                .personal-message {
+                    position: relative;
+                    z-index: 1;
                     font-size: 16px;
-                    color: #151516;
                     margin: 0;
                     font-weight: 500;
+                    opacity: 0.95;
                 }
                 
-                /* Post content - exactly like website */
-                .post-content {
-                    max-width: 100%;
+                /* Content area */
+                .email-content {
+                    padding: 40px;
+                    background: white;
                 }
                 
                 .post-meta {
                     margin-bottom: 20px;
                     font-size: 14px;
                     color: #666;
+                    font-weight: 500;
+                    display: flex;
+                    gap: 15px;
+                    align-items: center;
+                    flex-wrap: wrap;
                 }
                 
                 .post-meta .date {
                     color: #097bed;
+                    font-weight: 600;
+                    background: #f0f8ff;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 13px;
+                }
+                
+                .post-meta .author {
+                    color: #666;
                     font-weight: 500;
                 }
                 
+                .post-meta .author::before {
+                    content: "•";
+                    margin-right: 8px;
+                    color: #ccc;
+                }
+                
                 .post-title {
-                    font-size: 36px;
+                    font-size: 32px;
                     font-weight: 600;
                     color: #201654;
-                    margin: 0 0 30px 0;
+                    margin: 0 0 25px 0;
                     line-height: 1.3;
                     font-family: 'Rubik', sans-serif;
                 }
@@ -298,10 +349,12 @@ class NewsletterService {
                 .post-image {
                     width: 100%;
                     max-width: 100%;
-                    height: auto;
+                    height: 250px;
                     object-fit: cover;
-                    border-radius: 8px;
-                    margin: 0 0 30px 0;
+                    border-radius: 10px;
+                    margin: 0 0 25px 0;
+                    border: 1px solid #e0e0e0;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
                 }
                 
                 .post-excerpt {
@@ -312,15 +365,15 @@ class NewsletterService {
                     font-family: 'Rubik', sans-serif;
                 }
                 
-                /* Website-matching button */
+                /* Button - always white text */
                 .btn {
                     display: inline-block;
-                    background: #097bed;
-                    color: white;
-                    padding: 15px 30px;
+                    background: linear-gradient(135deg, #097bed 0%, #0056b3 100%);
+                    color: white !important;
+                    padding: 16px 32px;
                     text-decoration: none;
-                    border-radius: 5px;
-                    font-weight: 500;
+                    border-radius: 8px;
+                    font-weight: 600;
                     font-size: 16px;
                     font-family: 'Rubik', sans-serif;
                     transition: all 0.3s ease;
@@ -328,6 +381,7 @@ class NewsletterService {
                     cursor: pointer;
                     position: relative;
                     overflow: hidden;
+                    box-shadow: 0 4px 15px rgba(9, 123, 237, 0.3);
                 }
                 
                 .btn:before {
@@ -342,58 +396,109 @@ class NewsletterService {
                 }
                 
                 .btn:hover {
-                    background: #0056b3;
+                    background: linear-gradient(135deg, #0056b3 0%, #004494 100%);
                     transform: translateY(-2px);
-                    box-shadow: 0 4px 15px rgba(9, 123, 237, 0.3);
+                    box-shadow: 0 6px 20px rgba(9, 123, 237, 0.4);
+                    color: white !important;
                 }
                 
                 .btn:hover:before {
                     left: 100%;
                 }
                 
-                /* Footer - minimal and personal */
-                .footer {
-                    margin-top: 40px;
-                    padding-top: 30px;
-                    border-top: 1px solid #eee;
+                .btn:visited, .btn:active, .btn:focus {
+                    color: white !important;
+                }
+                
+                /* Blue footer - same gradient as header */
+                .email-footer {
+                    background: linear-gradient(135deg, #097bed 0%, #0056b3 100%);
+                    color: white;
+                    padding: 25px 30px;
                     text-align: center;
                     font-size: 14px;
-                    color: #666;
+                    position: relative;
                 }
                 
-                .footer a {
-                    color: #097bed;
-                    text-decoration: none;
+                .email-footer::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="30" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="20" cy="70" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+                    opacity: 0.3;
                 }
                 
-                .footer a:hover {
-                    text-decoration: underline;
-                }
-                
-                .footer p {
+                .email-footer p {
+                    position: relative;
+                    z-index: 1;
                     margin: 8px 0;
+                    opacity: 0.95;
+                }
+                
+                .email-footer a {
+                    color: white !important;
+                    text-decoration: none;
+                    font-weight: 500;
+                    opacity: 0.9;
+                }
+                
+                .email-footer a:hover {
+                    color: white !important;
+                    text-decoration: underline;
+                    opacity: 1;
                 }
                 
                 /* Mobile responsive */
-                @media (max-width: 600px) {
+                @media (max-width: 650px) {
                     body {
-                        padding: 10px;
+                        padding: 15px 10px;
                     }
                     
-                    .email-container {
-                        padding: 20px;
+                    .email-header {
+                        padding: 20px 20px;
+                    }
+                    
+                    .logo-container img {
+                        max-width: 250px;
+                        max-height: 50px;
+                    }
+                    
+                    .email-content {
+                        padding: 25px 20px;
                     }
                     
                     .post-title {
-                        font-size: 28px;
+                        font-size: 26px;
                     }
                     
                     .post-excerpt {
                         font-size: 16px;
                     }
                     
-                    .personal-message {
-                        padding: 15px;
+                    .post-image {
+                        height: 200px;
+                    }
+                    
+                    .btn {
+                        padding: 14px 28px;
+                        font-size: 15px;
+                    }
+                    
+                    .email-footer {
+                        padding: 20px 20px;
+                    }
+                    
+                    .post-meta {
+                        font-size: 13px;
+                        gap: 10px;
+                    }
+                    
+                    .post-meta .date,
+                    .post-meta .author {
+                        font-size: 12px;
                     }
                 }
                 
@@ -417,22 +522,41 @@ class NewsletterService {
                 .ReadMsgBody { width: 100%; }
                 .ExternalClass { width: 100%; }
                 .ExternalClass * { line-height: 100%; }
+                
+                /* Dark mode support */
+                @media (prefers-color-scheme: dark) {
+                    .btn {
+                        color: white !important;
+                    }
+                    .btn:hover {
+                        color: white !important;
+                    }
+                    .btn:visited, .btn:active, .btn:focus {
+                        color: white !important;
+                    }
+                }
+                
+                /* Force white text on button for all email clients */
+                .btn[style*="color"] {
+                    color: white !important;
+                }
             </style>
         </head>
         <body>
-            <div class="email-container">
-                <!-- Personal message header -->
-                <div class="personal-message">
+            <div class="email-card">
+                <!-- Blue header -->
+                <div class="email-header">
                     <div class="logo-container">
                         <img src="${logoUrl}" alt="No Life Anime" />
                     </div>
-                    <p class="personal-text">Merhaba! Yeni bir içerik yayınladık ve ilk sen görüyorsun. Kaçırma! 🎌</p>
+                    <p class="personal-message">Merhaba! Yeni bir içerik yayınladık ve ilk sen görüyorsun. Kaçırma! 🎌</p>
                 </div>
                 
-                <!-- Post content - exactly like website -->
-                <div class="post-content">
+                <!-- Content area -->
+                <div class="email-content">
                     <div class="post-meta">
                         <span class="date">${formattedDate}</span>
+                        <span class="date">${author}</span>
                     </div>
                     
                     <h1 class="post-title">${title}</h1>
@@ -441,13 +565,13 @@ class NewsletterService {
                     
                     <div class="post-excerpt">${firstParagraph}</div>
                     
-                    <a href="${postUrl}" class="btn">Tüm İçeriği Görüntüle</a>
+                    <a href="${postUrl}" class="btn" style="color: white !important;">Tüm İçeriği Görüntüle</a>
                 </div>
                 
-                <!-- Footer -->
-                <div class="footer">
-                    <p>Bu özel içeriği No Life Anime ailesinin bir parçası olduğun için gönderiyoruz.</p>
-                    <p>İstemiyorsan <a href="{{unsubscribe}}">buradan çıkabilirsin</a> • <a href="${baseUrl}">Sitemizi ziyaret et</a></p>
+                <!-- Blue footer - same gradient as header -->
+                <div class="email-footer">
+                    <p>Bu özel içeriği <strong>No Life Anime</strong> ailesinin bir parçası olduğun için gönderiyoruz.</p>
+                    <p><a href="{{unsubscribe}}">Abonelikten çık</a> • <a href="${baseUrl}">Sitemizi ziyaret et</a></p>
                 </div>
             </div>
         </body>
