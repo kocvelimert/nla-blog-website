@@ -84,11 +84,14 @@ class NewsletterService {
      */
     async createPostNotificationCampaign(postData) {
         try {
-            const { title, slug, excerpt, thumbnail, publishDate } = postData;
+            const { title, slug, excerpt, thumbnail, publishDate, category, formatCategory, contentCategory } = postData;
             
             console.log('📧 Creating newsletter campaign for:', {
                 title,
                 slug,
+                category,
+                formatCategory,
+                contentCategory,
                 hasExcerpt: !!excerpt,
                 hasThumbnail: !!thumbnail,
                 publishDate: publishDate ? new Date(publishDate).toISOString() : null
@@ -102,8 +105,13 @@ class NewsletterService {
             // Create campaign
             const createCampaign = new SibApiV3Sdk.CreateEmailCampaign();
             
+            // Format subject line: Yeni [formatCategory] - [contentCategory] İçeriği: [title]
+            const subjectLine = formatCategory && contentCategory ? 
+                `Yeni ${formatCategory}-${contentCategory} İçeriği: ${title}` : 
+                `Yeni Blog Yazısı: ${title}`;
+            
             createCampaign.name = `Blog Post: ${title}`;
-            createCampaign.subject = `Yeni Blog Yazısı: ${title}`;
+            createCampaign.subject = subjectLine;
             
             // Sender info
             createCampaign.sender = {
@@ -182,9 +190,10 @@ class NewsletterService {
      * @returns {string} HTML email content
      */
     generatePostEmailTemplate(postData) {
-        const { title, slug, excerpt, thumbnail, publishDate } = postData;
+        const { title, slug, excerpt, thumbnail, publishDate, category, formatCategory, contentCategory } = postData;
         const baseUrl = this.baseUrl || 'http://localhost:3000';
         const postUrl = `${baseUrl}/post.html?slug=${slug}`;
+        const logoUrl = `${baseUrl}/assets/img/nla-logo-tp.png`;
         
         // Format publish date
         const formattedDate = publishDate ? 
@@ -203,7 +212,7 @@ class NewsletterService {
         const emailExcerpt = excerpt || `${title} hakkında yeni yazımızı okumak için tıklayın!`;
         
         // Split excerpt into paragraphs and get first one
-        const firstParagraph = emailExcerpt.split('\n')[0] || emailExcerpt.substring(0, 150) + '...';
+        const firstParagraph = emailExcerpt.split('\n')[0] || emailExcerpt.substring(0, 200) + '...';
         
         return `
         <!DOCTYPE html>
@@ -211,7 +220,7 @@ class NewsletterService {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Yeni Blog Yazısı: ${title}</title>
+            <title>${title}</title>
             <style>
                 /* Website-matching styles */
                 @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
@@ -220,52 +229,54 @@ class NewsletterService {
                     font-family: 'Rubik', sans-serif;
                     line-height: 1.7;
                     color: #151516;
-                    max-width: 600px;
-                    margin: 0 auto;
-                    padding: 0;
+                    margin: 0;
+                    padding: 20px;
                     background-color: #f8f9fa;
-                    font-size: 16px;
+                    font-size: 18px;
                 }
                 
                 .email-container {
+                    max-width: 800px;
+                    margin: 0 auto;
                     background: white;
+                    padding: 40px;
                     border-radius: 0;
                     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    overflow: hidden;
-                    border-top: 3px solid #097bed;
                 }
                 
-                /* Header - website-like navbar */
-                .header {
-                    background: #fff;
-                    border-bottom: 1px solid #eee;
-                    padding: 20px 30px;
+                /* Personal message header */
+                .personal-message {
                     text-align: center;
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    border-left: 4px solid #097bed;
                 }
                 
-                .logo {
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: #097bed;
+                .logo-container {
+                    margin-bottom: 15px;
+                }
+                
+                .logo-container img {
+                    height: 40px;
+                    width: auto;
+                }
+                
+                .personal-text {
+                    font-size: 16px;
+                    color: #151516;
                     margin: 0;
-                    text-decoration: none;
+                    font-weight: 500;
                 }
                 
-                .tagline {
-                    font-size: 14px;
-                    color: #666;
-                    margin: 5px 0 0 0;
-                    font-weight: 400;
-                }
-                
-                /* Main content - website-like post card */
-                .content {
-                    padding: 30px;
-                    background: white;
+                /* Post content - exactly like website */
+                .post-content {
+                    max-width: 100%;
                 }
                 
                 .post-meta {
-                    margin-bottom: 15px;
+                    margin-bottom: 20px;
                     font-size: 14px;
                     color: #666;
                 }
@@ -276,10 +287,10 @@ class NewsletterService {
                 }
                 
                 .post-title {
-                    font-size: 28px;
+                    font-size: 36px;
                     font-weight: 600;
                     color: #201654;
-                    margin: 0 0 20px 0;
+                    margin: 0 0 30px 0;
                     line-height: 1.3;
                     font-family: 'Rubik', sans-serif;
                 }
@@ -287,17 +298,16 @@ class NewsletterService {
                 .post-image {
                     width: 100%;
                     max-width: 100%;
-                    height: 200px;
+                    height: auto;
                     object-fit: cover;
                     border-radius: 8px;
-                    margin: 0 0 20px 0;
-                    border: 1px solid #eee;
+                    margin: 0 0 30px 0;
                 }
                 
                 .post-excerpt {
-                    font-size: 16px;
+                    font-size: 18px;
                     color: #151516;
-                    margin: 0 0 25px 0;
+                    margin: 0 0 30px 0;
                     line-height: 1.7;
                     font-family: 'Rubik', sans-serif;
                 }
@@ -307,7 +317,7 @@ class NewsletterService {
                     display: inline-block;
                     background: #097bed;
                     color: white;
-                    padding: 12px 25px;
+                    padding: 15px 30px;
                     text-decoration: none;
                     border-radius: 5px;
                     font-weight: 500;
@@ -341,33 +351,14 @@ class NewsletterService {
                     left: 100%;
                 }
                 
-                /* Newsletter signature - compact */
-                .newsletter-info {
-                    background: #f8f9fa;
-                    padding: 20px 30px;
+                /* Footer - minimal and personal */
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 30px;
                     border-top: 1px solid #eee;
                     text-align: center;
                     font-size: 14px;
                     color: #666;
-                }
-                
-                .newsletter-info .brand {
-                    color: #097bed;
-                    font-weight: 600;
-                    text-decoration: none;
-                }
-                
-                .newsletter-info .brand:hover {
-                    color: #0056b3;
-                }
-                
-                /* Footer - minimal */
-                .footer {
-                    background: #201654;
-                    color: #fff;
-                    padding: 20px 30px;
-                    text-align: center;
-                    font-size: 12px;
                 }
                 
                 .footer a {
@@ -380,41 +371,29 @@ class NewsletterService {
                 }
                 
                 .footer p {
-                    margin: 5px 0;
+                    margin: 8px 0;
                 }
                 
                 /* Mobile responsive */
                 @media (max-width: 600px) {
                     body {
-                        padding: 0;
+                        padding: 10px;
                     }
                     
-                    .header {
-                        padding: 15px 20px;
-                    }
-                    
-                    .logo {
-                        font-size: 20px;
-                    }
-                    
-                    .content {
+                    .email-container {
                         padding: 20px;
                     }
                     
                     .post-title {
-                        font-size: 24px;
+                        font-size: 28px;
                     }
                     
-                    .post-image {
-                        height: 180px;
+                    .post-excerpt {
+                        font-size: 16px;
                     }
                     
-                    .newsletter-info {
-                        padding: 15px 20px;
-                    }
-                    
-                    .footer {
-                        padding: 15px 20px;
+                    .personal-message {
+                        padding: 15px;
                     }
                 }
                 
@@ -433,23 +412,30 @@ class NewsletterService {
                     text-decoration: none;
                     -ms-interpolation-mode: bicubic;
                 }
+                
+                /* Outlook specific */
+                .ReadMsgBody { width: 100%; }
+                .ExternalClass { width: 100%; }
+                .ExternalClass * { line-height: 100%; }
             </style>
         </head>
         <body>
             <div class="email-container">
-                <!-- Header - Website-like navbar -->
-                <div class="header">
-                    <h1 class="logo">No Life Anime</h1>
-                    <p class="tagline">Anime, Manga ve Manhwa Dünyasından Haberler</p>
+                <!-- Personal message header -->
+                <div class="personal-message">
+                    <div class="logo-container">
+                        <img src="${logoUrl}" alt="No Life Anime" />
+                    </div>
+                    <p class="personal-text">Merhaba! Yeni bir içerik yayınladık ve ilk sen görüyorsun. Kaçırma! 🎌</p>
                 </div>
                 
-                <!-- Main content - Website-like post card -->
-                <div class="content">
+                <!-- Post content - exactly like website -->
+                <div class="post-content">
                     <div class="post-meta">
                         <span class="date">${formattedDate}</span>
                     </div>
                     
-                    <h2 class="post-title">${title}</h2>
+                    <h1 class="post-title">${title}</h1>
                     
                     ${thumbnail ? `<img src="${thumbnail}" alt="${title}" class="post-image">` : ''}
                     
@@ -458,16 +444,10 @@ class NewsletterService {
                     <a href="${postUrl}" class="btn">Tüm İçeriği Görüntüle</a>
                 </div>
                 
-                <!-- Newsletter info - compact -->
-                <div class="newsletter-info">
-                    <p>Bu e-postayı <a href="${baseUrl}" class="brand">No Life Anime</a> haber bültenine abone olduğunuz için aldınız.</p>
-                    <p>Yeni içeriklerimizden haberdar olmak için <a href="${baseUrl}" class="brand">sitemizi ziyaret edin</a>.</p>
-                </div>
-                
-                <!-- Footer - minimal -->
+                <!-- Footer -->
                 <div class="footer">
-                    <p>Abonelikten çıkmak için <a href="{{unsubscribe}}">buraya tıklayın</a></p>
-                    <p>© ${new Date().getFullYear()} No Life Anime</p>
+                    <p>Bu özel içeriği No Life Anime ailesinin bir parçası olduğun için gönderiyoruz.</p>
+                    <p>İstemiyorsan <a href="{{unsubscribe}}">buradan çıkabilirsin</a> • <a href="${baseUrl}">Sitemizi ziyaret et</a></p>
                 </div>
             </div>
         </body>
