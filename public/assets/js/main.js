@@ -267,7 +267,8 @@
         }
 
         const mainPost = posts[0];
-        const categoryInfo = getCategoryInfo(mainPost.contentCategory);
+        const formatCategoryInfo = getCategoryInfo(mainPost.formatCategory);
+        const contentCategoryInfo = getCategoryInfo(mainPost.contentCategory);
         const formattedDate = formatDate(mainPost.createdAt);
         
         const bannerHTML = `
@@ -282,7 +283,8 @@
                         <div class="banner-details mt-4 mt-lg-0">
                             <div class="post-meta-single">
                                 <ul>
-                                    <li><a class="tag-base ${categoryInfo.class}" href="category.html?slug=${mainPost.contentCategory}">${categoryInfo.name}</a></li>
+                                    <li><a class="tag-base ${formatCategoryInfo.class}" href="category.html?slug=${mainPost.formatCategory}">${mainPost.formatCategory?.toUpperCase() || 'GENEL'}</a></li>
+                                    <li><a class="tag-base ${contentCategoryInfo.class}" href="category.html?slug=${mainPost.contentCategory}">${contentCategoryInfo.name}</a></li>
                                     <li class="date"><i class="fa fa-clock-o"></i>${formattedDate}</li>
                                 </ul>
                             </div>
