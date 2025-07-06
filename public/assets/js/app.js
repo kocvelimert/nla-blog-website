@@ -512,7 +512,7 @@ function createPost(postData) {
     })
     .then((result) => {
       alert("Post created successfully!");
-      window.location.href = "admin/admin-page.html";
+      window.location.href = "admin-page.html";
       return result;
     })
     .catch((error) => {

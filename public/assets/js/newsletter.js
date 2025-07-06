@@ -7,6 +7,7 @@ class NewsletterManager {
     constructor() {
         this.apiBaseUrl = '/api/newsletter';
         this.isSubmitting = false;
+        this.boundHandleSubmit = this.handleSubmit.bind(this);
         this.init();
     }
 
@@ -23,8 +24,17 @@ class NewsletterManager {
 
         // Also bind events when components are loaded
         document.addEventListener('componentsLoaded', () => {
+            console.log('📮 Components loaded event received, rebinding newsletter events');
             setTimeout(() => this.bindEvents(), 100);
         });
+
+        // Additional event for when newsletter widgets are specifically loaded
+        document.addEventListener('newsletterWidgetsLoaded', () => {
+            console.log('📮 Newsletter widgets loaded event received');
+            setTimeout(() => this.bindEvents(), 50);
+        });
+
+        console.log('📮 Newsletter manager initialized');
     }
 
     /**
@@ -34,14 +44,32 @@ class NewsletterManager {
         // Find all newsletter forms on the page
         const newsletterForms = document.querySelectorAll('#newsletter-form');
         
-        newsletterForms.forEach(form => {
+        console.log('📮 Looking for newsletter forms...');
+        console.log('📮 Found forms:', newsletterForms.length);
+        
+        if (newsletterForms.length === 0) {
+            console.log('📮 No newsletter forms found. Containers available:', document.querySelectorAll('.newsletter-container').length);
+        }
+        
+        newsletterForms.forEach((form, index) => {
+            console.log(`📮 Binding events to form ${index + 1}:`, form);
             // Remove existing listeners to prevent duplicates
-            form.removeEventListener('submit', this.handleSubmit.bind(this));
+            form.removeEventListener('submit', this.boundHandleSubmit);
             // Add submit event listener
-            form.addEventListener('submit', this.handleSubmit.bind(this));
+            form.addEventListener('submit', this.boundHandleSubmit);
         });
 
         console.log(`📮 Newsletter manager initialized for ${newsletterForms.length} form(s)`);
+    }
+
+    /**
+     * Force rebind events (useful for dynamically loaded content)
+     */
+    forceRebind() {
+        // Wait a bit for DOM to settle
+        setTimeout(() => {
+            this.bindEvents();
+        }, 50);
     }
 
     /**
@@ -49,9 +77,11 @@ class NewsletterManager {
      * @param {Event} event - Form submit event
      */
     async handleSubmit(event) {
+        console.log('📮 Newsletter form submission started');
         event.preventDefault();
 
         if (this.isSubmitting) {
+            console.log('📮 Form is already submitting, ignoring');
             return;
         }
 
@@ -60,18 +90,28 @@ class NewsletterManager {
         const emailInput = form.querySelector('#newsletter-email');
         const submitButton = form.querySelector('button[type="submit"]');
 
+        console.log('📮 Form elements found:', {
+            nameInput: !!nameInput,
+            emailInput: !!emailInput,
+            submitButton: !!submitButton
+        });
+
         // Get form data
         const name = nameInput?.value.trim();
         const email = emailInput?.value.trim();
 
+        console.log('📮 Form data:', { name, email: email ? email.replace(/(.{2}).*(@.*)/, '$1***$2') : '' });
+
         // Basic validation
         if (!name || !email) {
+            console.log('📮 Validation failed: missing name or email');
             this.showMessage(form, 'Ad ve e-posta adresi gereklidir.', 'error');
             return;
         }
 
         // Email validation
         if (!this.isValidEmail(email)) {
+            console.log('📮 Validation failed: invalid email format');
             this.showMessage(form, 'Geçerli bir e-posta adresi girin.', 'error');
             emailInput.focus();
             return;
@@ -80,6 +120,7 @@ class NewsletterManager {
         // Start submission
         this.isSubmitting = true;
         this.setButtonLoading(submitButton, true);
+        console.log('📮 Starting API request to:', `${this.apiBaseUrl}/subscribe`);
 
         try {
             const response = await fetch(`${this.apiBaseUrl}/subscribe`, {
@@ -90,7 +131,9 @@ class NewsletterManager {
                 body: JSON.stringify({ name, email })
             });
 
+            console.log('📮 API response status:', response.status);
             const result = await response.json();
+            console.log('📮 API response:', result);
 
             if (result.success) {
                 this.showMessage(form, result.message, 'success');

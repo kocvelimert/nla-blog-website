@@ -7,11 +7,16 @@ const quoteRoutes = require("./routes/quoteRoutes")
 const newsletterRoutes = require("./routes/newsletterRoutes")
 const connectDB = require("./config/db")
 
-require("dotenv").config() // Add parentheses here
+// Load configuration
+const { config, logConfigDebug } = require("./config/environment")
+
+// Debug configuration
+logConfigDebug()
+
 require("./config/cloudinary")
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const PORT = config.PORT
 
 // Connect to MongoDB
 connectDB()

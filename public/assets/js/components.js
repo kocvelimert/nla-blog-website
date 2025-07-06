@@ -114,6 +114,9 @@ class ComponentLoader {
         try {
             await Promise.all(promises);
             console.log(`✅ ${promises.length} newsletter widget(s) loaded successfully`);
+            
+            // Dispatch custom event for newsletter widgets loaded
+            document.dispatchEvent(new CustomEvent('newsletterWidgetsLoaded'));
         } catch (error) {
             console.error('❌ Error loading newsletter widgets:', error);
         }
@@ -168,7 +171,12 @@ window.componentLoader = new ComponentLoader();
 
 // Auto-load newsletter widgets when components are loaded
 document.addEventListener('componentsLoaded', () => {
-    window.componentLoader.loadAllNewsletters();
+    window.componentLoader.loadAllNewsletters().then(() => {
+        // Rebind newsletter events after widgets are loaded
+        if (window.newsletterManager) {
+            window.newsletterManager.forceRebind();
+        }
+    });
 });
 
 // Auto-initialize based on page
@@ -231,20 +239,21 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
             
         default:
-            // Homepage and other pages only load footer if needed
-            if (document.querySelector('#footer-container')) {
+            // Homepage and other pages
+            if (currentPage === 'index.html' || currentPage === '') {
+                // Initialize page with footer loading to trigger componentsLoaded event
                 window.componentLoader.initializePage({
                     loadFooter: true,
                     footerTarget: '#footer-container'
                 });
-            }
-            
-            // For homepage, also load newsletter widgets immediately
-            if (currentPage === 'index.html' || currentPage === '') {
-                // Wait a bit for DOM to be ready, then load newsletters
-                setTimeout(() => {
-                    window.componentLoader.loadAllNewsletters();
-                }, 100);
+            } else {
+                // For other pages, only load footer if needed
+                if (document.querySelector('#footer-container')) {
+                    window.componentLoader.initializePage({
+                        loadFooter: true,
+                        footerTarget: '#footer-container'
+                    });
+                }
             }
     }
 }); 

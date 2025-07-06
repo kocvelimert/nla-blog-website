@@ -1,15 +1,35 @@
 const SibApiV3Sdk = require('sib-api-v3-sdk');
+const { config } = require('../config/environment');
 
 class NewsletterService {
     constructor() {
+        console.log('🔧 Initializing NewsletterService...');
+        
+        // Validate configuration
+        if (!config.BREVO.API_KEY) {
+            throw new Error('BREVO_SUBSCRIBE_API is required but not configured');
+        }
+        
+        if (!config.BREVO.LIST_ID) {
+            throw new Error('BREVO_LIST_ID is required but not configured');
+        }
+        
+        if (!config.BREVO.SENDER_EMAIL) {
+            throw new Error('BREVO_SENDER_EMAIL is required but not configured');
+        }
+        
         // Set up Brevo client
         const defaultClient = SibApiV3Sdk.ApiClient.instance;
         const apiKey = defaultClient.authentications['api-key'];
-        apiKey.apiKey = process.env.BREVO_SUBSCRIBE_API;
-
+        apiKey.apiKey = config.BREVO.API_KEY;
+        
         this.contactsApi = new SibApiV3Sdk.ContactsApi();
         this.emailCampaignsApi = new SibApiV3Sdk.EmailCampaignsApi();
-        this.listId = parseInt(process.env.BREVO_LIST_ID);
+        this.listId = parseInt(config.BREVO.LIST_ID);
+        this.senderEmail = config.BREVO.SENDER_EMAIL;
+        this.baseUrl = config.BASE_URL;
+        
+        console.log('✅ NewsletterService initialized successfully');
     }
 
     /**
@@ -66,6 +86,19 @@ class NewsletterService {
         try {
             const { title, slug, excerpt, thumbnail, publishDate } = postData;
             
+            console.log('📧 Creating newsletter campaign for:', {
+                title,
+                slug,
+                hasExcerpt: !!excerpt,
+                hasThumbnail: !!thumbnail,
+                publishDate: publishDate ? new Date(publishDate).toISOString() : null
+            });
+            
+            // Validate required fields
+            if (!title || !slug) {
+                throw new Error('Title and slug are required for newsletter campaign');
+            }
+            
             // Create campaign
             const createCampaign = new SibApiV3Sdk.CreateEmailCampaign();
             
@@ -75,17 +108,27 @@ class NewsletterService {
             // Sender info
             createCampaign.sender = {
                 name: 'No Life Anime',
-                email: process.env.BREVO_SENDER_EMAIL || 'noreply@nolifeanime.com'
+                email: this.senderEmail || 'noreply@nolifeanime.com'
             };
             
             // HTML content
             const htmlContent = this.generatePostEmailTemplate(postData);
             createCampaign.htmlContent = htmlContent;
             
+            console.log('📧 Generated email HTML content length:', htmlContent.length);
+            
             // Recipients
             createCampaign.recipients = {
                 listIds: [this.listId]
             };
+            
+            console.log('📧 Campaign configuration:', {
+                name: createCampaign.name,
+                subject: createCampaign.subject,
+                sender: createCampaign.sender,
+                listId: this.listId,
+                htmlContentLength: htmlContent.length
+            });
             
             // Create the campaign
             const campaignResponse = await this.emailCampaignsApi.createEmailCampaign(createCampaign);
@@ -100,15 +143,35 @@ class NewsletterService {
             return {
                 success: true,
                 campaignId: campaignResponse.id,
-                message: 'E-posta kampanyası başarıyla gönderildi!'
+                message: 'E-posta kampanyası başarıyla gönderildi!',
+                data: {
+                    campaignId: campaignResponse.id,
+                    postTitle: title,
+                    postSlug: slug,
+                    sentAt: new Date().toISOString()
+                }
             };
 
         } catch (error) {
             console.error('❌ Campaign creation error:', error);
+            
+            // Log detailed error information
+            if (error.response) {
+                console.error('❌ API Error Response:', {
+                    status: error.response.status,
+                    statusText: error.response.statusText,
+                    body: error.response.body
+                });
+            }
+            
             return {
                 success: false,
                 message: 'E-posta kampanyası oluşturulurken hata oluştu.',
-                error: error.message
+                error: error.message,
+                details: error.response ? {
+                    status: error.response.status,
+                    message: error.response.body?.message || error.response.statusText
+                } : null
             };
         }
     }
@@ -120,8 +183,27 @@ class NewsletterService {
      */
     generatePostEmailTemplate(postData) {
         const { title, slug, excerpt, thumbnail, publishDate } = postData;
-        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const baseUrl = this.baseUrl || 'http://localhost:3000';
         const postUrl = `${baseUrl}/post.html?slug=${slug}`;
+        
+        // Format publish date
+        const formattedDate = publishDate ? 
+            new Date(publishDate).toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : 
+            new Date().toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        
+        // Extract first paragraph from excerpt for compact view
+        const emailExcerpt = excerpt || `${title} hakkında yeni yazımızı okumak için tıklayın!`;
+        
+        // Split excerpt into paragraphs and get first one
+        const firstParagraph = emailExcerpt.split('\n')[0] || emailExcerpt.substring(0, 150) + '...';
         
         return `
         <!DOCTYPE html>
@@ -131,74 +213,262 @@ class NewsletterService {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Yeni Blog Yazısı: ${title}</title>
             <style>
+                /* Website-matching styles */
+                @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+                
                 body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    color: #333;
+                    font-family: 'Rubik', sans-serif;
+                    line-height: 1.7;
+                    color: #151516;
                     max-width: 600px;
                     margin: 0 auto;
-                    padding: 20px;
+                    padding: 0;
+                    background-color: #f8f9fa;
+                    font-size: 16px;
                 }
+                
+                .email-container {
+                    background: white;
+                    border-radius: 0;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    overflow: hidden;
+                    border-top: 3px solid #097bed;
+                }
+                
+                /* Header - website-like navbar */
                 .header {
-                    background: #097bed;
-                    color: white;
-                    padding: 20px;
+                    background: #fff;
+                    border-bottom: 1px solid #eee;
+                    padding: 20px 30px;
                     text-align: center;
-                    border-radius: 10px 10px 0 0;
                 }
+                
+                .logo {
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: #097bed;
+                    margin: 0;
+                    text-decoration: none;
+                }
+                
+                .tagline {
+                    font-size: 14px;
+                    color: #666;
+                    margin: 5px 0 0 0;
+                    font-weight: 400;
+                }
+                
+                /* Main content - website-like post card */
                 .content {
-                    background: #f8f9fa;
                     padding: 30px;
-                    border-radius: 0 0 10px 10px;
+                    background: white;
                 }
+                
+                .post-meta {
+                    margin-bottom: 15px;
+                    font-size: 14px;
+                    color: #666;
+                }
+                
+                .post-meta .date {
+                    color: #097bed;
+                    font-weight: 500;
+                }
+                
+                .post-title {
+                    font-size: 28px;
+                    font-weight: 600;
+                    color: #201654;
+                    margin: 0 0 20px 0;
+                    line-height: 1.3;
+                    font-family: 'Rubik', sans-serif;
+                }
+                
                 .post-image {
                     width: 100%;
-                    max-width: 500px;
-                    height: auto;
-                    border-radius: 10px;
-                    margin: 20px 0;
+                    max-width: 100%;
+                    height: 200px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    margin: 0 0 20px 0;
+                    border: 1px solid #eee;
                 }
+                
+                .post-excerpt {
+                    font-size: 16px;
+                    color: #151516;
+                    margin: 0 0 25px 0;
+                    line-height: 1.7;
+                    font-family: 'Rubik', sans-serif;
+                }
+                
+                /* Website-matching button */
                 .btn {
+                    display: inline-block;
                     background: #097bed;
                     color: white;
-                    padding: 15px 30px;
+                    padding: 12px 25px;
                     text-decoration: none;
                     border-radius: 5px;
-                    display: inline-block;
-                    margin: 20px 0;
+                    font-weight: 500;
+                    font-size: 16px;
+                    font-family: 'Rubik', sans-serif;
+                    transition: all 0.3s ease;
+                    border: none;
+                    cursor: pointer;
+                    position: relative;
+                    overflow: hidden;
                 }
-                .footer {
+                
+                .btn:before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+                    transition: left 0.5s;
+                }
+                
+                .btn:hover {
+                    background: #0056b3;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 15px rgba(9, 123, 237, 0.3);
+                }
+                
+                .btn:hover:before {
+                    left: 100%;
+                }
+                
+                /* Newsletter signature - compact */
+                .newsletter-info {
+                    background: #f8f9fa;
+                    padding: 20px 30px;
+                    border-top: 1px solid #eee;
                     text-align: center;
-                    padding: 20px;
-                    font-size: 12px;
+                    font-size: 14px;
                     color: #666;
+                }
+                
+                .newsletter-info .brand {
+                    color: #097bed;
+                    font-weight: 600;
+                    text-decoration: none;
+                }
+                
+                .newsletter-info .brand:hover {
+                    color: #0056b3;
+                }
+                
+                /* Footer - minimal */
+                .footer {
+                    background: #201654;
+                    color: #fff;
+                    padding: 20px 30px;
+                    text-align: center;
+                    font-size: 12px;
+                }
+                
+                .footer a {
+                    color: #097bed;
+                    text-decoration: none;
+                }
+                
+                .footer a:hover {
+                    text-decoration: underline;
+                }
+                
+                .footer p {
+                    margin: 5px 0;
+                }
+                
+                /* Mobile responsive */
+                @media (max-width: 600px) {
+                    body {
+                        padding: 0;
+                    }
+                    
+                    .header {
+                        padding: 15px 20px;
+                    }
+                    
+                    .logo {
+                        font-size: 20px;
+                    }
+                    
+                    .content {
+                        padding: 20px;
+                    }
+                    
+                    .post-title {
+                        font-size: 24px;
+                    }
+                    
+                    .post-image {
+                        height: 180px;
+                    }
+                    
+                    .newsletter-info {
+                        padding: 15px 20px;
+                    }
+                    
+                    .footer {
+                        padding: 15px 20px;
+                    }
+                }
+                
+                /* Prevent email client issues */
+                table {
+                    border-collapse: collapse;
+                    mso-table-lspace: 0pt;
+                    mso-table-rspace: 0pt;
+                }
+                
+                img {
+                    border: 0;
+                    height: auto;
+                    line-height: 100%;
+                    outline: none;
+                    text-decoration: none;
+                    -ms-interpolation-mode: bicubic;
                 }
             </style>
         </head>
         <body>
-            <div class="header">
-                <h1>No Life Anime</h1>
-                <p>Yeni blog yazımız yayında!</p>
-            </div>
-            
-            <div class="content">
-                <h2>${title}</h2>
+            <div class="email-container">
+                <!-- Header - Website-like navbar -->
+                <div class="header">
+                    <h1 class="logo">No Life Anime</h1>
+                    <p class="tagline">Anime, Manga ve Manhwa Dünyasından Haberler</p>
+                </div>
                 
-                ${thumbnail ? `<img src="${thumbnail}" alt="${title}" class="post-image">` : ''}
+                <!-- Main content - Website-like post card -->
+                <div class="content">
+                    <div class="post-meta">
+                        <span class="date">${formattedDate}</span>
+                    </div>
+                    
+                    <h2 class="post-title">${title}</h2>
+                    
+                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}" class="post-image">` : ''}
+                    
+                    <div class="post-excerpt">${firstParagraph}</div>
+                    
+                    <a href="${postUrl}" class="btn">Tüm İçeriği Görüntüle</a>
+                </div>
                 
-                <p>${excerpt || 'Yeni blog yazımızı okumak için tıklayın!'}</p>
+                <!-- Newsletter info - compact -->
+                <div class="newsletter-info">
+                    <p>Bu e-postayı <a href="${baseUrl}" class="brand">No Life Anime</a> haber bültenine abone olduğunuz için aldınız.</p>
+                    <p>Yeni içeriklerimizden haberdar olmak için <a href="${baseUrl}" class="brand">sitemizi ziyaret edin</a>.</p>
+                </div>
                 
-                <a href="${postUrl}" class="btn">Yazıyı Oku</a>
-                
-                <p style="margin-top: 30px;">
-                    <small>Yayın Tarihi: ${new Date(publishDate).toLocaleDateString('tr-TR')}</small>
-                </p>
-            </div>
-            
-            <div class="footer">
-                <p>Bu e-postayı No Life Anime haber bültenine abone olduğunuz için aldınız.</p>
-                <p>Abonelikten çıkmak için <a href="{{unsubscribe}}">buraya tıklayın</a>.</p>
-                <p>© ${new Date().getFullYear()} No Life Anime. Tüm hakları saklıdır.</p>
+                <!-- Footer - minimal -->
+                <div class="footer">
+                    <p>Abonelikten çıkmak için <a href="{{unsubscribe}}">buraya tıklayın</a></p>
+                    <p>© ${new Date().getFullYear()} No Life Anime</p>
+                </div>
             </div>
         </body>
         </html>
