@@ -15,6 +15,12 @@ const config = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     BASE_URL: process.env.BASE_URL || 'http://localhost:3000',
     
+    // Admin configuration
+    ADMIN: {
+        ID: process.env.ADMIN_ID,
+        PASSWORD: process.env.ADMIN_PASSWORD
+    },
+    
     // Brevo configuration
     BREVO: {
         API_KEY: process.env.BREVO_SUBSCRIBE_API,
@@ -71,6 +77,8 @@ function logConfigDebug() {
     console.log('- Environment file exists:', fs.existsSync(path.join(__dirname, '..', '.env')));
     console.log('- NODE_ENV:', config.NODE_ENV);
     console.log('- BASE_URL:', config.BASE_URL);
+    console.log('- ADMIN_ID exists:', !!config.ADMIN.ID);
+    console.log('- ADMIN_PASSWORD exists:', !!config.ADMIN.PASSWORD);
     console.log('- BREVO_API_KEY exists:', !!config.BREVO.API_KEY);
     console.log('- BREVO_API_KEY format:', config.BREVO.API_KEY ? config.BREVO.API_KEY.startsWith('xkeysib-') : false);
     console.log('- BREVO_LIST_ID:', config.BREVO.LIST_ID);

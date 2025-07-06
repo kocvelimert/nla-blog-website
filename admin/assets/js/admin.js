@@ -302,7 +302,7 @@ function setupSortingHandlers() {
 
 // Function to edit a post
 function editPost(postId) {
-  window.location.href = `admin-editpost.html?id=${postId}`;
+  window.location.href = `edit-post.html?id=${postId}`;
 }
 
 // Function to delete a post
@@ -512,7 +512,7 @@ function createPost(postData) {
     })
     .then((result) => {
       alert("Post created successfully!");
-      window.location.href = "admin-page.html";
+      window.location.href = "dashboard.html";
       return result;
     })
     .catch((error) => {

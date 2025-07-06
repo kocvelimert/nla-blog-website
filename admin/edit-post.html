@@ -3,60 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - New Post</title>
-    <link rel="stylesheet" href="../assets/css/admin.css">
+    <title>Admin - Edit Post</title>
+    <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
     <div class="sidebar">
         <div class="menu-item">
-            <a href="admin-page.html">Manage Posts</a>
+            <a href="dashboard.html">Manage Posts</a>
         </div>
         <div class="menu-item">
-            <a href="admin-newpost.html">New Post</a>
+            <a href="new-post.html">New Post</a>
+        </div>
+        <div class="menu-item logout-section">
+            <form method="POST" action="/super-secret-admin-page/logout" style="margin: 0;">
+                <button type="submit" class="logout-btn">🚪 Logout</button>
+            </form>
         </div>
     </div>
-
+    
     <div class="content">
         <div class="content-left">
-            <h1>New Post</h1>
-            <form id="newPostForm" enctype="multipart/form-data">
-                <div class="form-section">
-                    <label for="title">Post Title</label>
-                    <br>
-                    <input type="text" id="title" name="title" required>
-                </div>
+            <h1>Edit Post</h1>
+            <form id="editPostForm" enctype="multipart/form-data">
+                <!-- Hidden field for post ID -->
+                <input type="hidden" id="postId" name="postId">
 
                 <div class="form-section">
-                    <label for="formatCategory">Format Category</label>
+                    <label for="editTitle">Post Title</label>
                     <br>
-                    <select id="formatCategory" name="formatCategory" required>
+                    <input type="text" id="editTitle" name="title" required>
+                </div>
+    
+                <div class="form-section">
+                    <label for="editFormatCategory">Format Category</label>
+                    <br>
+                    <select id="editFormatCategory" name="formatCategory" required>
                         <option value="anime">Anime</option>
                         <option value="manga">Manga</option>
                         <option value="manhwa">Manhwa</option>
                     </select>
                 </div>
-
+    
                 <div class="form-section">
-                    <label for="contentCategory">Content Category</label>
+                    <label for="editContentCategory">Content Category</label>
                     <br>
-                    <select id="contentCategory" name="contentCategory" required>
+                    <select id="editContentCategory" name="contentCategory" required>
                         <option value="haber">Haber</option>
                         <option value="liste">Liste</option>
                         <option value="inceleme">İnceleme</option>
                         <option value="teori">Teori</option>
                     </select>
                 </div>
-
+    
                 <div class="form-section">
-                    <label for="tags">Tags</label>
+                    <label for="editTags">Tags</label>
                     <br>
-                    <input type="text" id="tags-input" placeholder="Separated by commas" required/>
+                    <input id="editTags" type="text" required/>
                 </div>
-
+    
                 <div class="form-section">
-                    <label for="author">Author</label>
+                    <label for="editAuthor">Author</label>
                     <br>
-                    <select id="author" name="author" required>
+                    <select id="editAuthor" name="author" required>
                         <option value="Kurogane">Kurogane</option>
                     </select>
                 </div>
@@ -79,32 +87,34 @@
 
                             <div class="separator"></div>
                             <!-- Text Formatting -->
-                            <button type="button" onclick="formatText('bold')" id="bold-btn" title="Bold">B</button>
-                            <button type="button" onclick="formatText('italic')" id="italic-btn" title="Italic">I</button>
-                            <button type="button" onclick="formatText('link')" id="link-btn" title="Link">🔗</button>
+                            <button type="button" onclick="formatText('bold', event)" id="bold-btn" title="Bold">B</button>
+                            <button type="button" onclick="formatText('italic', event)" id="italic-btn" title="Italic">I</button>
+                            <button type="button" onclick="formatText('link', event)" id="link-btn" title="Link">🔗</button>
                         </div>
-                        <div id="editor"></div>
+                        <div id="editor">
+                            <div id="blocks-container" class="blocks-container"></div>
+                        </div>
                         <input type="hidden" id="editor-content" name="editor-content">
                     </div>
                 </div>
 
-                <button type="submit" id="save-post-btn">Save Post</button>
+                <button type="submit" id="update-post-btn">Update Post</button>
             </form>
         </div>
 
         <div class="content-right">
             <div class="thumbnail-uploader">
                 <h3>Post Thumbnail</h3>
-                <label class="thumbnail" for="thumbnail">Upload Thumbnail</label>
-                <input type="file" id="thumbnail" name="thumbnail" form="newPostForm" required accept="image/*">
-                <img id="thumbnail-preview" class="thumbnail-preview" alt="Thumbnail Preview" style="display: none;">
+                <label class="thumbnail" for="editThumbnail">Upload Thumbnail</label>
+                <input type="file" id="editThumbnail" name="thumbnail" accept="image/*">
+                <img id="thumbnail-preview" class="thumbnail-preview" alt="Thumbnail Preview">
             </div>
-
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script type="module" src="../assets/js/editor.js"></script>
-    <script type="module" src="../assets/js/editor-buttons.js"></script>
-    <script src="../assets/js/app.js"></script>
+    <script type="module" src="assets/js/editor.js"></script>
+    <script type="module" src="assets/js/editor-buttons.js"></script>
+    <script src="assets/js/edit-post.js"></script>
 </body>
 </html>

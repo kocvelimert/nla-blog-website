@@ -784,3 +784,40 @@ body {
     opacity: 0.7;
   }
   
+  /* ================================
+     LOGOUT BUTTON STYLES
+  ================================== */
+  .logout-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #34495e;
+  }
+  
+  .logout-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .logout-btn:hover {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+  }
+  
+  .logout-btn:active {
+    transform: translateY(0);
+  }
+  

@@ -460,7 +460,7 @@ function updatePost() {
   })
   .then(() => {
     alert('Post updated successfully!');
-    window.location.href = 'admin-page.html';
+    window.location.href = 'dashboard.html';
   })
   .catch(error => {
     console.error('Error updating post:', error);

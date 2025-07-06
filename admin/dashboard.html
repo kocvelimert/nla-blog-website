@@ -4,16 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Page - Manage Posts</title>
-    <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
 </head>
 <body>
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="menu-item">
-            <a href="admin-page.html">Manage Posts</a>
+            <a href="dashboard.html">Manage Posts</a>
         </div>
         <div class="menu-item">
-            <a href="admin-newpost.html">New Post</a>
+            <a href="new-post.html">New Post</a>
+        </div>
+        <div class="menu-item logout-section">
+            <form method="POST" action="/super-secret-admin-page/logout" style="margin: 0;">
+                <button type="submit" class="logout-btn">🚪 Logout</button>
+            </form>
         </div>
     </div>
 
@@ -40,6 +45,6 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="../assets/js/app.js"></script>
+    <script src="assets/js/admin.js"></script>
 </body>
 </html>
