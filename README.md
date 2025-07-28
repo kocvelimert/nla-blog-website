@@ -122,4 +122,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 A live demo of the website will be available soon. Stay tuned!
 
 <!-- Replace with your GIF URL -->
-![Project Demo]() 
+![Project Demo](https://tenor.com/tr/view/cute-gif-21702789) 
