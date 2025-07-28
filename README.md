@@ -115,4 +115,11 @@ nla-blog-website/
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details. 
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+## Live Demo
+
+A live demo of the website will be available soon. Stay tuned!
+
+<!-- Replace with your GIF URL -->
+![Project Demo]() 
